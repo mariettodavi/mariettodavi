@@ -11,6 +11,8 @@ body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #1e1e1
 }
 #refresh-btn { background: none; border: none; color: #eee; font-size: 16px; cursor: pointer; }
 #refresh-btn:hover { color: #6ea8ff; }
+#refresh-btn:disabled { color: #666; cursor: default; animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .tree-node { padding-left: 8px; }
 .tree-row { display: flex; align-items: center; cursor: pointer; padding: 3px 4px; border-radius: 4px; }

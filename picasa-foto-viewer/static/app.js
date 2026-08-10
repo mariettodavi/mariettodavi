@@ -27,9 +27,19 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") moveLightbox(1);
 });
 
-refreshBtn.addEventListener("click", () => {
-  loadTreeRoot();
-  loadPhotos(state.currentPath, true);
+refreshBtn.addEventListener("click", async () => {
+  refreshBtn.disabled = true;
+  refreshBtn.title = "Aggiornamento in corso...";
+  try {
+    await postJSON("/api/reindex", {});
+    await loadTreeRoot();
+    await loadPhotos(state.currentPath, true);
+  } catch (err) {
+    alert(`Aggiornamento non riuscito: ${err.message}`);
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.title = "Aggiorna";
+  }
 });
 
 async function fetchJSON(url) {
