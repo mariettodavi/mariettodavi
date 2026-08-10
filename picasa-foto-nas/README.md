@@ -10,10 +10,12 @@ Google Foto (file `.zip` nella cartella Download) dentro il NAS, in:
 ## Cosa fa
 
 1. Scegli manualmente il file `.zip` da estrarre (si apre già nella cartella Download).
-2. Scegli una sottocartella già esistente dentro `Picasa - Foto`, oppure creane
-   una nuova con il pulsante "Nuova cartella...".
-3. Premi "Estrai ZIP nella cartella": il contenuto dello zip viene copiato
-   nella sottocartella scelta sul NAS.
+2. Sfoglia le cartelle del NAS con **doppio click** sull'elenco per entrare
+   dentro una sottocartella (anche più livelli, es. `antaeus` → `vacanze`).
+   Usa "Su di un livello" per tornare indietro e "Nuova cartella qui..." per
+   crearne una nuova esattamente nella posizione in cui ti trovi.
+3. Premi "Estrai ZIP QUI": il contenuto dello zip viene copiato nella
+   cartella in cui ti trovi in quel momento (mostrata sopra l'elenco).
 4. Se l'estrazione va a buon fine, il file `.zip` originale viene cancellato
    dalla cartella Download.
 
