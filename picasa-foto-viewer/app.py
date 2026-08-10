@@ -28,6 +28,10 @@ from PIL import Image, UnidentifiedImageError
 NAS_ROOT = Path(r"\\FS6706T-EC49\Picasa - Foto")
 
 APP_ID = "picasa-foto-viewer"
+# Aumenta questo numero ad ogni modifica: si vede nell'angolo in basso a
+# sinistra dell'app, cosi' e' facile controllare se una build .exe e'
+# davvero quella aggiornata invece di doverlo indovinare.
+APP_VERSION = "2.1"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -238,12 +242,12 @@ def add_no_cache_headers(response):
 
 @app.route("/")
 def index():
-    return render_template("index.html", root_label=NAS_ROOT.name)
+    return render_template("index.html", root_label=NAS_ROOT.name, app_version=APP_VERSION)
 
 
 @app.route("/api/ping")
 def api_ping():
-    return jsonify({"app": APP_ID})
+    return jsonify({"app": APP_ID, "version": APP_VERSION})
 
 
 @app.route("/api/tree")
