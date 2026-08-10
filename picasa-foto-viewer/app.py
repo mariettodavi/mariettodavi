@@ -28,10 +28,10 @@ from PIL import Image, UnidentifiedImageError
 NAS_ROOT = Path(r"\\FS6706T-EC49\Picasa - Foto")
 
 APP_ID = "picasa-foto-viewer"
-# Aumenta questo numero ad ogni modifica: si vede nell'angolo in basso a
-# sinistra dell'app, cosi' e' facile controllare se una build .exe e'
+# Aumenta questo numero ad ogni modifica: si vede in cima alla barra
+# laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.2"
+APP_VERSION = "2.3"
 HOST = "127.0.0.1"
 PORT = 8765
 
