@@ -31,7 +31,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede nell'angolo in basso a
 # sinistra dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.1"
+APP_VERSION = "2.2"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -364,24 +364,55 @@ def api_folder_move():
 # Avvio
 # ---------------------------------------------------------------------------
 
-def another_instance_running():
-    """True se un'altra copia di questa app e' gia' in ascolto sulla porta."""
+def running_instance_version():
+    """Versione dell'istanza gia' in ascolto sulla porta, o None se non c'e'."""
     try:
         with urllib.request.urlopen(f"http://{HOST}:{PORT}/api/ping", timeout=1) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data.get("app") == APP_ID
+            if data.get("app") == APP_ID:
+                return data.get("version", "?")
     except Exception:
-        return False
+        pass
+    return None
+
+
+def show_blocking_message(title, message):
+    """Mostra un messaggio anche senza console (l'exe usa --noconsole)."""
+    try:
+        import tkinter
+        from tkinter import messagebox
+
+        root = tkinter.Tk()
+        root.withdraw()
+        messagebox.showerror(title, message)
+        root.destroy()
+    except Exception:
+        print(message)
 
 
 def main():
     url = f"http://{HOST}:{PORT}/"
 
-    if another_instance_running():
-        # L'app e' gia' aperta da un'altra finestra: non avviarne una
-        # seconda (darebbe solo errori di porta occupata), apri solo il
-        # browser sull'istanza gia' attiva.
-        webbrowser.open(url)
+    running_version = running_instance_version()
+    if running_version is not None:
+        if running_version == APP_VERSION:
+            # E' gia' aperta un'altra copia della STESSA versione: non
+            # avviarne una seconda (darebbe solo errori di porta occupata),
+            # apri solo il browser sull'istanza gia' attiva.
+            webbrowser.open(url)
+        else:
+            # E' rimasta accesa in background una versione diversa (spesso
+            # invisibile, senza finestra, se lanciata come .exe): meglio
+            # avvisare chiaramente che far finta di niente e mostrare
+            # sempre codice vecchio senza che nessuno se ne accorga.
+            show_blocking_message(
+                "Picasa Foto Viewer",
+                "È rimasta accesa in background una versione precedente del programma "
+                f"(v{running_version}, questa e' v{APP_VERSION}).\n\n"
+                "Apri Gestione Attività (Ctrl+Shift+Esc), cerca \"PicasaFotoViewer.exe\" "
+                "(o \"python.exe\" se stavi usando run.bat), terminala, poi riapri "
+                "questo programma.",
+            )
         return
 
     if not NAS_ROOT.is_dir():
