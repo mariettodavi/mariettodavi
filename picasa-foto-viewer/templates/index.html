@@ -11,7 +11,12 @@
     <aside id="sidebar">
       <div id="sidebar-header">
         <span>{{ root_label }}</span>
-        <button id="refresh-btn" title="Aggiorna">&#8635;</button>
+        <button id="refresh-btn" title="Aggiorna">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <polyline points="21 3 21 9 15 9" />
+          </svg>
+        </button>
       </div>
       <div id="version-tag">v{{ app_version }}</div>
       <div id="tree"></div>
@@ -24,17 +29,23 @@
   </div>
 
   <div id="lightbox" class="hidden">
-    <button id="lb-close" title="Chiudi">&times;</button>
-    <button id="lb-prev" title="Precedente">&#10094;</button>
+    <button id="lb-close" class="lb-btn" title="Chiudi">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+    </button>
+    <button id="lb-prev" class="lb-btn" title="Precedente">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+    </button>
     <img id="lb-img" src="" alt="">
-    <button id="lb-next" title="Successiva">&#10095;</button>
+    <button id="lb-next" class="lb-btn" title="Successiva">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+    </button>
     <div id="lb-caption"></div>
   </div>
 
   <div id="move-modal" class="hidden">
     <div class="modal-box">
       <h3>Sposta "<span id="move-modal-title"></span>" in:</h3>
-      <div id="move-tree-root" class="move-root-row">{{ root_label }} (cartella principale)</div>
+      <div id="move-tree-root">{{ root_label }} (cartella principale)</div>
       <div id="move-tree"></div>
       <div id="move-error" class="modal-error hidden"></div>
       <div class="modal-actions">

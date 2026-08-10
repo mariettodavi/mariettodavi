@@ -4,6 +4,13 @@ const state = {
   lightboxIndex: -1,
 };
 
+const ICON_CHEVRON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18" /></svg>';
+const ICON_RENAME =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>';
+const ICON_MOVE =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h16" /><path d="m13 6 6 6-6 6" /></svg>';
+
 const treeEl = document.getElementById("tree");
 const gridEl = document.getElementById("grid");
 const breadcrumbEl = document.getElementById("breadcrumb");
@@ -75,7 +82,7 @@ function makeFolderNode(folder, container, options) {
 
   const toggle = document.createElement("span");
   toggle.className = "toggle";
-  toggle.textContent = folder.hasChildren ? "▸" : "";
+  if (folder.hasChildren) toggle.innerHTML = ICON_CHEVRON;
   row.appendChild(toggle);
 
   const label = document.createElement("span");
@@ -90,7 +97,7 @@ function makeFolderNode(folder, container, options) {
     const renameBtn = document.createElement("button");
     renameBtn.className = "icon-btn";
     renameBtn.title = "Rinomina";
-    renameBtn.textContent = "✎";
+    renameBtn.innerHTML = ICON_RENAME;
     renameBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       renameFolder(folder);
@@ -100,7 +107,7 @@ function makeFolderNode(folder, container, options) {
     const moveBtn = document.createElement("button");
     moveBtn.className = "icon-btn";
     moveBtn.title = "Sposta...";
-    moveBtn.textContent = "⇒";
+    moveBtn.innerHTML = ICON_MOVE;
     moveBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       openMoveModal(folder);
@@ -127,13 +134,13 @@ function makeFolderNode(folder, container, options) {
     }
     expanded = true;
     childrenEl.classList.remove("hidden");
-    toggle.textContent = "▾";
+    toggle.classList.add("expanded");
   }
 
   function collapse() {
     expanded = false;
     childrenEl.classList.add("hidden");
-    toggle.textContent = "▸";
+    toggle.classList.remove("expanded");
   }
 
   toggle.addEventListener("click", (e) => {
