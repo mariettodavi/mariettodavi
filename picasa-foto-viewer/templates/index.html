@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Picasa Foto Viewer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div id="sidebar-header">
+        <span>{{ root_label }}</span>
+        <button id="refresh-btn" title="Aggiorna">&#8635;</button>
+      </div>
+      <div id="tree"></div>
+    </aside>
+    <main id="main">
+      <div id="breadcrumb">(cartella principale)</div>
+      <div id="grid"></div>
+      <div id="empty-msg" class="hidden">Nessuna foto in questa cartella.</div>
+    </main>
+  </div>
+
+  <div id="lightbox" class="hidden">
+    <button id="lb-close" title="Chiudi">&times;</button>
+    <button id="lb-prev" title="Precedente">&#10094;</button>
+    <img id="lb-img" src="" alt="">
+    <button id="lb-next" title="Successiva">&#10095;</button>
+    <div id="lb-caption"></div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
