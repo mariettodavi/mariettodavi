@@ -30,6 +30,19 @@
     <div id="lb-caption"></div>
   </div>
 
+  <div id="move-modal" class="hidden">
+    <div class="modal-box">
+      <h3>Sposta "<span id="move-modal-title"></span>" in:</h3>
+      <div id="move-tree-root" class="move-root-row">{{ root_label }} (cartella principale)</div>
+      <div id="move-tree"></div>
+      <div id="move-error" class="modal-error hidden"></div>
+      <div class="modal-actions">
+        <button id="move-cancel">Annulla</button>
+        <button id="move-confirm">Sposta qui</button>
+      </div>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

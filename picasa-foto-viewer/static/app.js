@@ -38,7 +38,25 @@ async function fetchJSON(url) {
   return res.json();
 }
 
-function makeFolderNode(folder, container) {
+async function postJSON(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Errore ${res.status}`);
+  return data;
+}
+
+// ---- albero cartelle ----
+
+function makeFolderNode(folder, container, options) {
+  options = options || {};
+  const showActions = options.showActions !== false;
+  const onSelect = options.onSelect || ((f) => loadPhotos(f.path));
+  const rootEl = options.rootEl || container;
+
   const node = document.createElement("div");
   node.className = "tree-node";
 
@@ -55,6 +73,33 @@ function makeFolderNode(folder, container) {
   label.textContent = folder.name;
   row.appendChild(label);
 
+  if (showActions) {
+    const actions = document.createElement("span");
+    actions.className = "folder-actions";
+
+    const renameBtn = document.createElement("button");
+    renameBtn.className = "icon-btn";
+    renameBtn.title = "Rinomina";
+    renameBtn.textContent = "✎";
+    renameBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      renameFolder(folder);
+    });
+    actions.appendChild(renameBtn);
+
+    const moveBtn = document.createElement("button");
+    moveBtn.className = "icon-btn";
+    moveBtn.title = "Sposta...";
+    moveBtn.textContent = "⇒";
+    moveBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openMoveModal(folder);
+    });
+    actions.appendChild(moveBtn);
+
+    row.appendChild(actions);
+  }
+
   node.appendChild(row);
 
   const childrenEl = document.createElement("div");
@@ -67,7 +112,7 @@ function makeFolderNode(folder, container) {
   async function expand() {
     if (!loaded) {
       const children = await fetchJSON(`/api/tree?path=${encodeURIComponent(folder.path)}`);
-      children.forEach((child) => makeFolderNode(child, childrenEl));
+      children.forEach((child) => makeFolderNode(child, childrenEl, options));
       loaded = true;
     }
     expanded = true;
@@ -88,9 +133,9 @@ function makeFolderNode(folder, container) {
   });
 
   label.addEventListener("click", () => {
-    document.querySelectorAll(".folder-label.selected").forEach((el) => el.classList.remove("selected"));
+    rootEl.querySelectorAll(".folder-label.selected").forEach((el) => el.classList.remove("selected"));
     label.classList.add("selected");
-    loadPhotos(folder.path);
+    onSelect(folder, label);
     if (folder.hasChildren && !expanded) expand();
   });
 
@@ -101,7 +146,8 @@ function makeFolderNode(folder, container) {
 async function loadTreeRoot() {
   treeEl.innerHTML = "";
   const roots = await fetchJSON("/api/tree?path=");
-  roots.forEach((folder) => makeFolderNode(folder, treeEl));
+  const options = { rootEl: treeEl };
+  roots.forEach((folder) => makeFolderNode(folder, treeEl, options));
 }
 
 async function loadPhotos(path, silent) {
@@ -130,6 +176,8 @@ function renderGrid(photos) {
   });
 }
 
+// ---- lightbox ----
+
 function openLightbox(index) {
   state.lightboxIndex = index;
   showLightboxImage();
@@ -153,6 +201,91 @@ function showLightboxImage() {
   lbImg.src = `/api/full?path=${encodeURIComponent(photo.path)}`;
   lbCaption.textContent = `${photo.name} (${state.lightboxIndex + 1}/${state.photos.length})`;
 }
+
+// ---- rinomina / sposta cartelle ----
+
+async function afterFolderChanged(oldPath, newPath) {
+  await loadTreeRoot();
+  if (state.currentPath === oldPath) {
+    await loadPhotos(newPath);
+  } else if (state.currentPath.startsWith(oldPath + "/")) {
+    await loadPhotos(newPath + state.currentPath.slice(oldPath.length));
+  }
+}
+
+async function renameFolder(folder) {
+  const input = window.prompt(`Nuovo nome per "${folder.name}":`, folder.name);
+  if (input === null) return;
+  const newName = input.trim();
+  if (!newName || newName === folder.name) return;
+  try {
+    const data = await postJSON("/api/folder/rename", { path: folder.path, newName });
+    await afterFolderChanged(folder.path, data.path);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+const moveModalEl = document.getElementById("move-modal");
+const moveModalTitleEl = document.getElementById("move-modal-title");
+const moveTreeRootEl = document.getElementById("move-tree-root");
+const moveTreeEl = document.getElementById("move-tree");
+const moveErrorEl = document.getElementById("move-error");
+const moveConfirmBtn = document.getElementById("move-confirm");
+const moveCancelBtn = document.getElementById("move-cancel");
+
+const moveState = { sourcePath: "", destPath: "" };
+
+async function openMoveModal(folder) {
+  moveState.sourcePath = folder.path;
+  moveState.destPath = "";
+  moveModalTitleEl.textContent = folder.name;
+  moveErrorEl.classList.add("hidden");
+  moveTreeEl.innerHTML = "";
+  moveTreeRootEl.classList.add("selected");
+  moveModalEl.classList.remove("hidden");
+
+  const roots = await fetchJSON("/api/tree?path=");
+  const options = {
+    rootEl: moveTreeEl,
+    showActions: false,
+    onSelect: (f) => {
+      moveTreeRootEl.classList.remove("selected");
+      moveState.destPath = f.path;
+    },
+  };
+  roots.forEach((f) => makeFolderNode(f, moveTreeEl, options));
+}
+
+function closeMoveModal() {
+  moveModalEl.classList.add("hidden");
+}
+
+moveTreeRootEl.addEventListener("click", () => {
+  moveTreeEl.querySelectorAll(".folder-label.selected").forEach((el) => el.classList.remove("selected"));
+  moveTreeRootEl.classList.add("selected");
+  moveState.destPath = "";
+});
+
+moveCancelBtn.addEventListener("click", closeMoveModal);
+moveModalEl.addEventListener("click", (e) => {
+  if (e.target === moveModalEl) closeMoveModal();
+});
+
+moveConfirmBtn.addEventListener("click", async () => {
+  moveErrorEl.classList.add("hidden");
+  try {
+    const data = await postJSON("/api/folder/move", {
+      path: moveState.sourcePath,
+      destPath: moveState.destPath,
+    });
+    closeMoveModal();
+    await afterFolderChanged(moveState.sourcePath, data.path);
+  } catch (err) {
+    moveErrorEl.textContent = err.message;
+    moveErrorEl.classList.remove("hidden");
+  }
+});
 
 loadTreeRoot();
 loadPhotos("");

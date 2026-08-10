@@ -7,6 +7,7 @@ delle cartelle mostrata e' esattamente quella trovata sul NAS.
 """
 
 import os
+import shutil
 import threading
 import webbrowser
 from pathlib import Path
@@ -23,6 +24,7 @@ CACHE_ROOT = Path(__file__).resolve().parent / "thumb_cache"
 
 THUMB_SIZE = (320, 320)
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff"}
+INVALID_FOLDER_CHARS = r'\/:*?"<>|'
 
 HOST = "127.0.0.1"
 PORT = 8765
@@ -104,6 +106,23 @@ def ensure_thumbnail(abs_source):
     return thumb_path
 
 
+def error_response(message, status):
+    return jsonify({"error": message}), status
+
+
+def move_cache_dir(old_rel, new_rel):
+    """Sposta la cache miniature insieme alla cartella, se esiste (best-effort)."""
+    old_cache = CACHE_ROOT / old_rel
+    if not old_cache.is_dir():
+        return
+    new_cache = CACHE_ROOT / new_rel
+    try:
+        new_cache.parent.mkdir(parents=True, exist_ok=True)
+        old_cache.rename(new_cache)
+    except OSError:
+        pass
+
+
 @app.route("/")
 def index():
     return render_template("index.html", root_label=NAS_ROOT.name)
@@ -138,6 +157,75 @@ def api_full():
     if not abs_source.is_file():
         abort(404)
     return send_file(abs_source)
+
+
+@app.route("/api/folder/rename", methods=["POST"])
+def api_folder_rename():
+    data = request.get_json(silent=True) or {}
+    rel = (data.get("path") or "").strip()
+    new_name = (data.get("newName") or "").strip()
+
+    if not rel:
+        return error_response("Non puoi rinominare la cartella principale", 400)
+    if not new_name or any(ch in new_name for ch in INVALID_FOLDER_CHARS):
+        return error_response(
+            "Il nome della cartella non può essere vuoto o contenere: " + INVALID_FOLDER_CHARS,
+            400,
+        )
+
+    abs_path = safe_rel_path(rel)
+    if not abs_path.is_dir():
+        return error_response("Cartella non trovata", 404)
+
+    new_abs = abs_path.parent / new_name
+    if new_abs.exists() and new_abs.resolve() != abs_path.resolve():
+        return error_response("Esiste già una cartella con questo nome", 409)
+
+    try:
+        os.rename(abs_path, new_abs)
+    except OSError as exc:
+        return error_response(f"Impossibile rinominare: {exc}", 500)
+
+    new_rel = os.path.relpath(new_abs, NAS_ROOT).replace("\\", "/")
+    move_cache_dir(rel, new_rel)
+    return jsonify({"path": new_rel, "name": new_name})
+
+
+@app.route("/api/folder/move", methods=["POST"])
+def api_folder_move():
+    data = request.get_json(silent=True) or {}
+    rel = (data.get("path") or "").strip()
+    dest_rel = (data.get("destPath") or "").strip()
+
+    if not rel:
+        return error_response("Non puoi spostare la cartella principale", 400)
+
+    abs_path = safe_rel_path(rel)
+    dest_abs = safe_rel_path(dest_rel)
+    if not abs_path.is_dir():
+        return error_response("Cartella non trovata", 404)
+    if not dest_abs.is_dir():
+        return error_response("Cartella di destinazione non trovata", 404)
+
+    abs_resolved = abs_path.resolve()
+    dest_resolved = dest_abs.resolve()
+    if dest_resolved == abs_resolved or abs_resolved in dest_resolved.parents:
+        return error_response("Non puoi spostare una cartella dentro se stessa", 400)
+    if dest_resolved == abs_resolved.parent:
+        return error_response("La cartella è già in questa posizione", 400)
+
+    new_abs = dest_abs / abs_path.name
+    if new_abs.exists():
+        return error_response("Esiste già una cartella con questo nome nella destinazione", 409)
+
+    try:
+        shutil.move(str(abs_path), str(new_abs))
+    except OSError as exc:
+        return error_response(f"Impossibile spostare: {exc}", 500)
+
+    new_rel = os.path.relpath(new_abs, NAS_ROOT).replace("\\", "/")
+    move_cache_dir(rel, new_rel)
+    return jsonify({"path": new_rel})
 
 
 def main():

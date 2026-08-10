@@ -12,6 +12,22 @@ di cartelle e sottocartelle, a destra le miniature della cartella
 selezionata. Click su una miniatura per aprirla ingrandita, con frecce
 (o tasti freccia della tastiera) per scorrere le foto successive/precedenti.
 
+## Rinominare e spostare le cartelle
+
+Passando il mouse su una cartella nell'albero a sinistra compaiono due
+icone:
+
+- **✎ Rinomina** — chiede il nuovo nome e rinomina la cartella sul NAS.
+- **⇒ Sposta...** — apre una finestra con l'albero delle cartelle: scegli
+  la cartella di destinazione (o "Picasa - Foto (cartella principale)" per
+  portarla al livello più alto) e premi "Sposta qui".
+
+Queste operazioni agiscono direttamente sul NAS (spostano/rinominano le
+cartelle vere, non una copia), quindi sono permanenti. L'app impedisce
+operazioni non valide (es. spostare una cartella dentro se stessa) e
+mostra un messaggio se qualcosa va storto (es. esiste già una cartella con
+quel nome nella destinazione).
+
 ## Come funziona la cache delle miniature
 
 La prima volta che apri una cartella, l'app genera le miniature delle foto
