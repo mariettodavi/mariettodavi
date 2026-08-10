@@ -21,7 +21,18 @@ import webbrowser
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file, render_template
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageDraw, UnidentifiedImageError
+
+try:
+    import pystray
+
+    TRAY_AVAILABLE = True
+except Exception:
+    # Non solo ImportError: su alcuni sistemi l'inizializzazione del
+    # backend dell'icona puo' fallire per altri motivi. In quel caso si
+    # torna al comportamento precedente (niente icona nella barra) invece
+    # di far crashare l'app all'avvio.
+    TRAY_AVAILABLE = False
 
 # Cartella del NAS da sfogliare. Modifica qui se cambia il nome del NAS
 # o della cartella condivisa.
@@ -31,7 +42,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.3"
+APP_VERSION = "2.4"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -424,7 +435,43 @@ def main():
         print("Indice pronto.")
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
-    app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
+
+    if TRAY_AVAILABLE:
+        # Il server gira in un thread "daemon": se l'icona nella barra
+        # delle applicazioni viene chiusa (Esci), il processo termina
+        # subito, niente resta acceso in background senza che si veda.
+        server_thread = threading.Thread(
+            target=lambda: app.run(host=HOST, port=PORT, debug=False, use_reloader=False),
+            daemon=True,
+        )
+        server_thread.start()
+        run_tray(url)
+    else:
+        app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
+
+
+def build_tray_icon_image():
+    size = 64
+    img = Image.new("RGB", (size, size), (15, 17, 21))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse((6, 6, size - 6, size - 6), fill=(91, 140, 255))
+    draw.ellipse((18, 18, size - 18, size - 18), fill=(15, 17, 21))
+    return img
+
+
+def run_tray(url):
+    def on_open(icon, item):
+        webbrowser.open(url)
+
+    def on_quit(icon, item):
+        icon.stop()
+
+    menu = pystray.Menu(
+        pystray.MenuItem("Apri Picasa Foto Viewer", on_open, default=True),
+        pystray.MenuItem("Esci", on_quit),
+    )
+    icon = pystray.Icon(APP_ID, build_tray_icon_image(), "Picasa Foto Viewer", menu)
+    icon.run()
 
 
 if __name__ == "__main__":

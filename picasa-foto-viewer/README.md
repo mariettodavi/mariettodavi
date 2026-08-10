@@ -26,18 +26,31 @@ selezionata. Click su una miniatura per aprirla ingrandita, con frecce
 In alternativa, se preferisci non creare l'eseguibile, puoi continuare a
 usare `run.bat` (richiede Python installato, vedi sotto).
 
+## Come chiudere l'app
+
+L'app non ha una finestra normale (per non tenere in giro una console
+brutta), ma mentre è accesa mostra un'**icona nella barra delle
+applicazioni** (in basso a destra, vicino all'orologio — se non la vedi
+subito, controlla la freccetta "icone nascoste"). Click destro su
+quell'icona → **Esci** per chiuderla davvero.
+
+Chiudere solo la scheda del browser NON chiude l'app: resta accesa in
+background (comodo, così la riapri istantaneamente), ma se vuoi
+davvero spegnerla — ad esempio prima di installare una versione nuova —
+usa "Esci" dall'icona nella barra.
+
+Se stai ancora usando `run.bat` invece dell'eseguibile, quello mostra
+una normale finestra nera: chiudi quella.
+
 ## Se apri l'app mentre è già aperta
 
 L'app se ne accorge da sola (controlla se c'è già un'altra copia in
 ascolto) e si limita a riportarti alla finestra del browser già aperta,
 invece di far partire un secondo programma che andrebbe in conflitto con
-il primo. Se hai chiuso solo la scheda del browser per sbaglio, il
-programma resta comunque acceso in background: aprendolo di nuovo ti
-riporta semplicemente alla pagina.
-
-Per chiudere davvero l'app, chiudi la finestra nera del programma (o,
-con l'eseguibile `.exe`, usa Gestione Attività se non hai una finestra
-visibile) prima di aggiornarla a una versione nuova.
+il primo. Se invece rileva una **versione diversa** già accesa in
+background, te lo dice con un messaggio chiaro invece di aprirsi in
+silenzio sulla copia vecchia — a quel punto usa "Esci" dall'icona nella
+barra (vedi sopra) e riprova.
 
 ## Velocità: l'indice locale
 
@@ -114,3 +127,6 @@ NAS_ROOT = Path(r"\\FS6706T-EC49\Picasa - Foto")
 - La griglia mostra solo le foto della cartella selezionata (non quelle
   delle sue sottocartelle insieme), esattamente come nel vecchio Picasa
   quando si sfoglia per cartella.
+- L'icona nella barra delle applicazioni richiede Windows; se per qualche
+  motivo non riesce a crearla, l'app funziona comunque ma senza icona (in
+  quel caso l'unico modo per chiuderla resta Gestione Attività).
