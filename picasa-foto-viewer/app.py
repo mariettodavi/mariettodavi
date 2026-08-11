@@ -43,7 +43,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.9"
+APP_VERSION = "2.10"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -440,6 +440,16 @@ def api_reindex():
 @app.route("/api/immich/status")
 def api_immich_status():
     return jsonify(IMMICH_STATUS)
+
+
+@app.route("/api/immich/albums")
+def api_immich_albums_debug():
+    """Elenco (in minuscolo) degli album letti da Immich, solo per
+    verificare che i nomi coincidano davvero con quelli delle cartelle."""
+    conn = get_db()
+    rows = conn.execute("SELECT name_lower FROM immich_albums ORDER BY name_lower").fetchall()
+    conn.close()
+    return jsonify([row["name_lower"] for row in rows])
 
 
 @app.route("/api/thumb")
