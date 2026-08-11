@@ -43,7 +43,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.10"
+APP_VERSION = "2.11"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -229,17 +229,31 @@ def rebuild_index():
     conn.close()
 
 
+def folder_matches_immich_album(folder_name, immich_names_lower):
+    """True se il nome della cartella corrisponde a un album Immich.
+
+    Non deve essere per forza identico: molte cartelle hanno in fondo un
+    suffisso in piu' (es. "Alessandra Teatro 2005" su Immich contro
+    "Alessandra Teatro 2005 X" sul NAS), quindi basta che la cartella
+    inizi con il nome dell'album.
+    """
+    name_lower = folder_name.strip().lower()
+    for album in immich_names_lower:
+        if name_lower == album or name_lower.startswith(album + " "):
+            return True
+    return False
+
+
 def db_list_subfolders(rel, show_hidden=False):
     conn = get_db()
     rows = conn.execute(
         "SELECT path, name, "
         "EXISTS(SELECT 1 FROM folders c WHERE c.parent = folders.path) AS has_children, "
-        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden, "
-        "EXISTS(SELECT 1 FROM immich_albums a WHERE a.name_lower = LOWER(folders.name)) "
-        "AS in_immich "
+        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden "
         "FROM folders WHERE parent = ? ORDER BY name COLLATE NOCASE",
         (rel,),
     ).fetchall()
+    immich_names = [r["name_lower"] for r in conn.execute("SELECT name_lower FROM immich_albums")]
     conn.close()
     result = []
     for row in rows:
@@ -250,7 +264,7 @@ def db_list_subfolders(rel, show_hidden=False):
             "path": row["path"],
             "hasChildren": bool(row["has_children"]),
             "hidden": bool(row["is_hidden"]),
-            "inImmich": bool(row["in_immich"]),
+            "inImmich": folder_matches_immich_album(row["name"], immich_names),
         })
     return result
 

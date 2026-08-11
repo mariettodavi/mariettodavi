@@ -98,8 +98,12 @@ nome nella destinazione).
 
 Se alcune cartelle sono già state caricate come album su un server
 [Immich](https://immich.app/), l'app può mostrare un piccolo pallino
-verde ✓ accanto al nome della cartella quando esiste un album con lo
-stesso nome (confronto senza distinguere maiuscole/minuscole).
+verde ✓ accanto al nome della cartella. Il confronto non richiede un nome
+identico al 100%: basta che il nome della cartella **inizi con** il nome
+dell'album (maiuscole/minuscole ignorate), così funziona anche se la
+cartella ha in fondo qualcosa in più rispetto all'album (es. album
+"Alessandra Teatro 2005" su Immich → cartella "Alessandra Teatro 2005 X"
+sul NAS: badge comunque visibile).
 
 Per attivarlo:
 
