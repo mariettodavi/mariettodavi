@@ -43,7 +43,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.11"
+APP_VERSION = "2.12"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -378,6 +378,12 @@ def ensure_thumbnail(abs_source):
     thumb_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         with Image.open(abs_source) as img:
+            # draft: per i JPEG, fa decodificare al volo una versione gia'
+            # ridotta invece di decodificare tutta la foto a piena
+            # risoluzione solo per poi rimpicciolirla. Su foto di
+            # smartphone (spesso 12+ megapixel) e' molte volte piu' veloce
+            # ed e' pensato apposta per generare miniature.
+            img.draft("RGB", THUMB_SIZE)
             img = img.convert("RGB")
             img.thumbnail(THUMB_SIZE)
             img.save(thumb_path, "JPEG", quality=85)
