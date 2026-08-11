@@ -72,6 +72,24 @@ async function loadImmichStatus() {
   }
 }
 
+const precacheStatusEl = document.getElementById("precache-status");
+
+async function pollPrecacheStatus() {
+  try {
+    const status = await fetchJSON("/api/precache/status");
+    if (status.running && status.total > 0) {
+      precacheStatusEl.classList.remove("hidden");
+      precacheStatusEl.textContent = `Precaricamento miniature: ${status.done}/${status.total}`;
+    } else {
+      precacheStatusEl.classList.add("hidden");
+    }
+  } catch (err) {
+    // Non e' grave se questa chiamata fallisce: la navigazione delle
+    // foto non dipende da questo, e' solo un indicatore di progresso.
+  }
+}
+setInterval(pollPrecacheStatus, 2000);
+
 refreshBtn.addEventListener("click", async () => {
   refreshBtn.disabled = true;
   refreshBtn.title = "Aggiornamento in corso...";
@@ -469,6 +487,7 @@ moveConfirmBtn.addEventListener("click", async () => {
 loadTreeRoot();
 loadPhotos("");
 loadImmichStatus();
+pollPrecacheStatus();
 // All'avvio l'aggiornamento di Immich parte in background sul server:
 // ricontrolliamo tra qualche secondo per prendere l'esito e i badge.
 setTimeout(() => {

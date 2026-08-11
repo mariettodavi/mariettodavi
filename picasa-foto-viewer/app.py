@@ -10,6 +10,7 @@ Le miniature vengono generate la prima volta che servono e tenute in
 cache su disco locale (thumb_cache/), mai sul NAS.
 """
 
+import concurrent.futures
 import json
 import os
 import shutil
@@ -45,7 +46,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.13"
+APP_VERSION = "2.14"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -416,6 +417,43 @@ def ensure_thumbnail(abs_source):
     return thumb_path
 
 
+# Stato della pre-generazione delle miniature in background, mostrato
+# nell'app cosi' si vede il progresso invece di scoprirlo per caso.
+PRECACHE_STATUS = {"running": False, "total": 0, "done": 0}
+PRECACHE_LOCK = threading.Lock()
+PRECACHE_WORKERS = 4  # non troppi, per non intasare il NAS mentre navighi
+
+
+def precache_thumbnails_worker():
+    if PRECACHE_STATUS["running"]:
+        return  # gia' in corso, non farne partire un altro insieme
+    conn = get_db()
+    paths = [row["path"] for row in conn.execute("SELECT path FROM photos")]
+    conn.close()
+
+    with PRECACHE_LOCK:
+        PRECACHE_STATUS["running"] = True
+        PRECACHE_STATUS["total"] = len(paths)
+        PRECACHE_STATUS["done"] = 0
+
+    def process(rel):
+        abs_source = (NAS_ROOT / rel).resolve()
+        ensure_thumbnail(abs_source)
+        with PRECACHE_LOCK:
+            PRECACHE_STATUS["done"] += 1
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=PRECACHE_WORKERS) as ex:
+            list(ex.map(process, paths))
+    finally:
+        with PRECACHE_LOCK:
+            PRECACHE_STATUS["running"] = False
+
+
+def precache_thumbnails_async():
+    threading.Thread(target=precache_thumbnails_worker, daemon=True).start()
+
+
 def error_response(message, status):
     return jsonify({"error": message}), status
 
@@ -478,12 +516,18 @@ def api_reindex():
         return error_response(f"Impossibile raggiungere il NAS: {NAS_ROOT}", 503)
     rebuild_index()
     refresh_immich_albums_async()
+    precache_thumbnails_async()
     return jsonify({"ok": True})
 
 
 @app.route("/api/immich/status")
 def api_immich_status():
     return jsonify(IMMICH_STATUS)
+
+
+@app.route("/api/precache/status")
+def api_precache_status():
+    return jsonify(PRECACHE_STATUS)
 
 
 @app.route("/api/immich/albums")
@@ -714,6 +758,11 @@ def main():
     # raggiungibile in questo momento, l'avvio dell'app non deve MAI
     # aspettarlo (era proprio questo il bug che rallentava tutto).
     refresh_immich_albums_async()
+
+    # Pre-genera in background le miniature mancanti di tutta la
+    # libreria, cosi' quando apri davvero una cartella sono gia' pronte
+    # (a un ritmo moderato, per non intasare il NAS mentre navighi).
+    precache_thumbnails_async()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 

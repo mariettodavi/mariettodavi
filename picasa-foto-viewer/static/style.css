@@ -73,6 +73,12 @@ svg { display: block; }
 #immich-status.immich-ok { background: rgba(53, 201, 140, 0.1); color: #35c98c; }
 #immich-status.immich-error { background: rgba(255, 107, 107, 0.1); color: var(--danger); }
 
+#precache-status {
+  margin: 0 16px 12px; padding: 6px 10px; border-radius: var(--radius-sm);
+  font-size: 11px; line-height: 1.4; color: var(--accent-hover);
+  background: var(--accent-soft);
+}
+
 #tree { padding: 4px 8px 16px; flex: 1; }
 
 .tree-node { padding-left: 6px; }

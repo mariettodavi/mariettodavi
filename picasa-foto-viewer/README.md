@@ -13,18 +13,33 @@ ciascuna), a destra le miniature della cartella selezionata. Click su una
 miniatura per aprirla ingrandita, con frecce (o tasti freccia della
 tastiera) per scorrere le foto successive/precedenti.
 
-## Se la prima apertura di una cartella è lenta
+## Precaricamento delle miniature in background
 
-La primissima volta che apri una cartella, per ogni foto l'app deve
-leggerla dal NAS e generarne la miniatura — dalle volte successive è
-istantanea (resta in cache). Se anche questa primissima apertura ti
-sembra più lenta del previsto, l'app tiene un log con il tempo reale
-impiegato per ogni foto: apri il file **`perf.log`** (nella stessa
-cartella di `PicasaFotoViewer.exe`) con un editor di testo. Ogni riga
-mostra quanto ci ha messo e quanto pesa il file originale — mandami
-qualche riga se i tempi ti sembrano fuori norma, così capiamo se il
-collo di bottiglia è la rete verso il NAS o altro. Il file si può
-cancellare in qualsiasi momento, si ricrea da solo.
+Appena l'app si avvia (e dopo ogni "↻ Aggiorna"), parte da sola in
+sottofondo una scansione che genera le miniature mancanti di **tutta**
+la libreria, non solo della cartella che stai guardando — così quando
+apri davvero una cartella, nella maggior parte dei casi le miniature
+sono già pronte invece di doverle generare lì per lì. Va a un ritmo
+moderato (4 foto alla volta) apposta per non intasare il NAS mentre magari
+stai già navigando.
+
+Mentre è in corso vedi una riga tipo "Precaricamento miniature:
+120/850" sotto "Mostra cartelle nascoste"; sparisce da sola quando ha
+finito. Su una libreria grande la primissima volta può richiedere
+diversi minuti in background (l'app resta comunque usabile nel
+frattempo), le volte successive è molto più veloce perché deve
+occuparsi solo delle foto nuove.
+
+## Se una cartella è ancora lenta ad aprirsi
+
+Se apri una cartella e non è ancora stata precaricata (o qualcosa
+sembra fuori norma), l'app tiene un log con il tempo reale impiegato
+per ogni foto: apri il file **`perf.log`** (nella stessa cartella di
+`PicasaFotoViewer.exe`) con un editor di testo. Ogni riga mostra quanto
+ci ha messo e quanto pesa il file originale — mandami qualche riga se i
+tempi ti sembrano fuori norma, così capiamo se il collo di bottiglia è
+la rete verso il NAS o altro. Il file si può cancellare in qualsiasi
+momento, si ricrea da solo.
 
 ## Come si usa (consigliato: un unico .exe, senza Python)
 
