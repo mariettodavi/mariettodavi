@@ -488,9 +488,14 @@ loadTreeRoot();
 loadPhotos("");
 loadImmichStatus();
 pollPrecacheStatus();
-// All'avvio l'aggiornamento di Immich parte in background sul server:
-// ricontrolliamo tra qualche secondo per prendere l'esito e i badge.
+// All'avvio, in background sul server ripartono sia il controllo di
+// Immich sia il ricontrollo del NAS (per le cartelle aggiunte da fuori):
+// ricarichiamo l'albero un paio di volte nei secondi successivi per
+// prendere i risultati senza dover premere "Aggiorna" a mano.
 setTimeout(() => {
   loadImmichStatus();
   loadTreeRoot();
 }, 3000);
+setTimeout(() => {
+  loadTreeRoot();
+}, 8000);

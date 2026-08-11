@@ -90,10 +90,18 @@ cartelle e foto. Aprire le cartelle è quindi istantaneo.
 
 - La **prima volta** che avvii l'app, o dopo aver cancellato `index.db`,
   viene creato leggendo tutto l'albero del NAS (può richiedere qualche
-  secondo in più, una volta sola).
-- Il pulsante **↻ Aggiorna** in alto a sinistra rilegge il NAS e
-  aggiorna l'indice: usalo dopo aver aggiunto foto nuove da fuori
-  dall'app (es. con l'altra app che scompatta gli zip di Google Foto).
+  secondo in più, una volta sola) — qui l'app aspetta prima di aprire il
+  browser, perché non c'è ancora nulla da mostrare.
+- **Ogni avvio successivo** ricontrolla il NAS da solo, in background,
+  senza far aspettare l'apertura dell'app: se hai aggiunto cartelle o
+  foto da fuori (es. con l'altra app che scompatta gli zip di Google
+  Foto), compaiono da sole al riavvio, senza dover premere nulla. Su una
+  libreria molto grande questo ricontrollo in background può richiedere
+  qualche secondo: l'albero che vedi appena apri l'app potrebbe non
+  includere ancora le aggiunte freschissime, ma compaiono da sole entro
+  pochi secondi.
+- Il pulsante **↻ Aggiorna** in alto a sinistra fa lo stesso controllo
+  ma subito, senza dover chiudere e riaprire l'app.
 - Rinominare/spostare una cartella dall'app stessa aggiorna l'indice da
   solo, senza bisogno di premere "Aggiorna".
 

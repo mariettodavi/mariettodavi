@@ -46,7 +46,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.14"
+APP_VERSION = "2.15"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -750,19 +750,32 @@ def main():
         print(f"ATTENZIONE: non trovo la cartella del NAS: {NAS_ROOT}")
 
     if not DB_PATH.exists() and NAS_ROOT.is_dir():
+        # Primissimo avvio in assoluto: qui blocchiamo, perche' senza un
+        # indice non c'e' comunque nulla da mostrare appena si apre il
+        # browser.
         print("Prima apertura: indicizzo le cartelle del NAS, un momento...")
         rebuild_index()
         print("Indice pronto.")
+        precache_thumbnails_async()
+    elif NAS_ROOT.is_dir():
+        # Avvii successivi: l'indice di prima esiste gia', quindi il
+        # browser puo' aprirsi subito con quello. In background lo
+        # ricontrolliamo comunque contro il NAS, cosi' le cartelle
+        # aggiunte da fuori (es. l'altra app che estrae gli zip di
+        # Google Foto) compaiono da sole senza dover premere "Aggiorna" -
+        # e solo DOPO che il ricontrollo e' finito parte anche il
+        # precaricamento delle miniature, cosi' include anche le foto
+        # appena trovate.
+        def refresh_then_precache():
+            rebuild_index()
+            precache_thumbnails_worker()
+
+        threading.Thread(target=refresh_then_precache, daemon=True).start()
 
     # In background: se Immich non e' configurato, e' lento o non e'
     # raggiungibile in questo momento, l'avvio dell'app non deve MAI
     # aspettarlo (era proprio questo il bug che rallentava tutto).
     refresh_immich_albums_async()
-
-    # Pre-genera in background le miniature mancanti di tutta la
-    # libreria, cosi' quando apri davvero una cartella sono gia' pronte
-    # (a un ritmo moderato, per non intasare il NAS mentre navighi).
-    precache_thumbnails_async()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 
