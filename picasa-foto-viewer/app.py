@@ -43,7 +43,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.8"
+APP_VERSION = "2.9"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -76,14 +76,26 @@ app = Flask(__name__)
 
 
 def load_config():
+    """Legge config.json. Ritorna (config, errore).
+
+    errore e' None se il file non esiste (Immich semplicemente non e'
+    configurato, va bene cosi') oppure se e' tutto ok; e' valorizzato solo
+    se il file ESISTE ma non si riesce a leggerlo, cosi' l'errore arriva
+    fino all'interfaccia invece di essere ignorato in silenzio.
+    """
     defaults = {"immich_url": "", "immich_api_key": ""}
+    if not CONFIG_PATH.exists():
+        return defaults, None
     try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        # utf-8-sig invece di utf-8: tollera il carattere invisibile (BOM)
+        # che Blocco Note su Windows a volte mette all'inizio del file
+        # quando lo salvi come "UTF-8", che altrimenti rompe il JSON.
+        with open(CONFIG_PATH, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
-        defaults.update({k: data.get(k, v) for k, v in defaults.items()})
-    except (OSError, json.JSONDecodeError):
-        pass
-    return defaults
+    except (OSError, json.JSONDecodeError) as exc:
+        return defaults, f"config.json presente ma non leggibile: {exc}"
+    defaults.update({k: data.get(k, v) for k, v in defaults.items()})
+    return defaults, None
 
 
 # ---------------------------------------------------------------------------
@@ -124,11 +136,13 @@ def fetch_immich_album_names():
     il messaggio serve a capire subito cosa non va, senza dover
     indovinare (config mancante, url sbagliato, chiave sbagliata, ecc.).
     """
-    config = load_config()
+    config, config_error = load_config()
+    if config_error:
+        return None, config_error
     url = config["immich_url"].strip().rstrip("/")
     api_key = config["immich_api_key"].strip()
     if not url or not api_key:
-        return None, "config.json mancante o incompleto (serve immich_url e immich_api_key)"
+        return None, "config.json incompleto (serve sia immich_url che immich_api_key)"
     try:
         req = urllib.request.Request(
             f"{url}/api/albums", headers={"x-api-key": api_key, "Accept": "application/json"}
@@ -158,9 +172,10 @@ def fetch_immich_album_names():
 def refresh_immich_albums():
     """Aggiorna la tabella locale degli album Immich (bloccante: va chiamata
     sempre in un thread separato, vedi refresh_immich_albums_async)."""
-    config = load_config()
-    configured = bool(config["immich_url"].strip() and config["immich_api_key"].strip())
-    IMMICH_STATUS["configured"] = configured
+    # "configured" significa "esiste un config.json da leggere": lo
+    # mostriamo comunque anche se e' incompleto o rotto, cosi' l'errore
+    # arriva a chi lo sta guardando invece di sparire nel nulla.
+    IMMICH_STATUS["configured"] = CONFIG_PATH.exists()
 
     names, error = fetch_immich_album_names()
     if names is None:
