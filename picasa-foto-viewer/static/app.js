@@ -152,6 +152,14 @@ function makeFolderNode(folder, container, options) {
     label.appendChild(badge);
   }
 
+  if (folder.photoCount > 0) {
+    const count = document.createElement("span");
+    count.className = "photo-count";
+    count.textContent = folder.photoCount;
+    count.title = `${folder.photoCount} foto in questa cartella`;
+    label.appendChild(count);
+  }
+
   row.appendChild(label);
 
   if (showActions) {

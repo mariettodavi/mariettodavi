@@ -16,9 +16,11 @@ import shutil
 import sqlite3
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 import webbrowser
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_file, render_template
@@ -43,7 +45,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.12"
+APP_VERSION = "2.13"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -71,6 +73,10 @@ DB_PATH = app_dir() / "index.db"
 # pubblicata su GitHub, resta solo sul tuo PC accanto al programma. Vedi
 # config.example.json per il formato.
 CONFIG_PATH = app_dir() / "config.json"
+# Quanto tempo impiega a leggere/ridurre ogni foto NUOVA (non quelle gia'
+# in cache): utile per capire se la lentezza e' la rete verso il NAS o
+# altro. Si puo' cancellare in ogni momento, si ricrea da sola.
+PERF_LOG = app_dir() / "perf.log"
 
 app = Flask(__name__)
 
@@ -249,7 +255,8 @@ def db_list_subfolders(rel, show_hidden=False):
     rows = conn.execute(
         "SELECT path, name, "
         "EXISTS(SELECT 1 FROM folders c WHERE c.parent = folders.path) AS has_children, "
-        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden "
+        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden, "
+        "(SELECT COUNT(*) FROM photos p WHERE p.folder = folders.path) AS photo_count "
         "FROM folders WHERE parent = ? ORDER BY name COLLATE NOCASE",
         (rel,),
     ).fetchall()
@@ -265,6 +272,7 @@ def db_list_subfolders(rel, show_hidden=False):
             "hasChildren": bool(row["has_children"]),
             "hidden": bool(row["is_hidden"]),
             "inImmich": folder_matches_immich_album(row["name"], immich_names),
+            "photoCount": row["photo_count"],
         })
     return result
 
@@ -367,6 +375,14 @@ def thumbnail_path_for(abs_source):
     return CACHE_ROOT / rel.parent / (rel.name + ".thumb.jpg")
 
 
+def log_perf(line):
+    try:
+        with open(PERF_LOG, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except OSError:
+        pass
+
+
 def ensure_thumbnail(abs_source):
     thumb_path = thumbnail_path_for(abs_source)
     try:
@@ -376,6 +392,7 @@ def ensure_thumbnail(abs_source):
     if thumb_path.exists() and thumb_path.stat().st_mtime >= source_mtime:
         return thumb_path
     thumb_path.parent.mkdir(parents=True, exist_ok=True)
+    start = time.time()
     try:
         with Image.open(abs_source) as img:
             # draft: per i JPEG, fa decodificare al volo una versione gia'
@@ -389,6 +406,13 @@ def ensure_thumbnail(abs_source):
             img.save(thumb_path, "JPEG", quality=85)
     except (UnidentifiedImageError, OSError):
         return None
+    elapsed = time.time() - start
+    try:
+        size_kb = abs_source.stat().st_size / 1024
+    except OSError:
+        size_kb = -1
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    log_perf(f"{timestamp}  {elapsed:6.2f}s  {size_kb:8.0f} KB  {abs_source.name}")
     return thumb_path
 
 
