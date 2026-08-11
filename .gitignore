@@ -5,3 +5,4 @@ picasa-foto-viewer/index.db
 picasa-foto-viewer/build/
 picasa-foto-viewer/dist/
 picasa-foto-viewer/*.spec
+picasa-foto-viewer/config.json

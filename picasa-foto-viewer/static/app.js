@@ -17,6 +17,8 @@ const ICON_EYE_OFF =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>';
 const ICON_TRASH =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>';
+const ICON_IMMICH_BADGE =
+  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 9 10.5 15 8 12.5" /></svg>';
 
 const treeEl = document.getElementById("tree");
 const gridEl = document.getElementById("grid");
@@ -106,7 +108,20 @@ function makeFolderNode(folder, container, options) {
   const label = document.createElement("span");
   label.className = "folder-label";
   if (folder.hidden) label.classList.add("is-hidden-folder");
-  label.textContent = folder.name;
+
+  const labelText = document.createElement("span");
+  labelText.className = "folder-label-text";
+  labelText.textContent = folder.name;
+  label.appendChild(labelText);
+
+  if (folder.inImmich) {
+    const badge = document.createElement("span");
+    badge.className = "immich-badge";
+    badge.title = "Già caricata su Immich";
+    badge.innerHTML = ICON_IMMICH_BADGE;
+    label.appendChild(badge);
+  }
+
   row.appendChild(label);
 
   if (showActions) {

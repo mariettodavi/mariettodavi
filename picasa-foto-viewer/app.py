@@ -42,7 +42,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.6"
+APP_VERSION = "2.7"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -66,8 +66,23 @@ def app_dir():
 
 CACHE_ROOT = app_dir() / "thumb_cache"
 DB_PATH = app_dir() / "index.db"
+# Configurazione locale (indirizzo e API key di Immich): NON viene mai
+# pubblicata su GitHub, resta solo sul tuo PC accanto al programma. Vedi
+# config.example.json per il formato.
+CONFIG_PATH = app_dir() / "config.json"
 
 app = Flask(__name__)
+
+
+def load_config():
+    defaults = {"immich_url": "", "immich_api_key": ""}
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        defaults.update({k: data.get(k, v) for k, v in defaults.items()})
+    except (OSError, json.JSONDecodeError):
+        pass
+    return defaults
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +105,50 @@ def get_db():
     # Cartelle nascoste: scelta solo locale, non tocca il NAS e non viene
     # mai cancellata da un reindex.
     conn.execute("CREATE TABLE IF NOT EXISTS hidden_folders (path TEXT PRIMARY KEY)")
+    # Nomi degli album gia' presenti su Immich (minuscolo, per confronto
+    # case-insensitive), aggiornati insieme al resto quando premi "Aggiorna".
+    conn.execute("CREATE TABLE IF NOT EXISTS immich_albums (name_lower TEXT PRIMARY KEY)")
     return conn
+
+
+def fetch_immich_album_names():
+    """Scarica i nomi degli album da Immich. None se non configurato o non
+    raggiungibile (l'app deve continuare a funzionare anche senza Immich)."""
+    config = load_config()
+    url = config["immich_url"].strip().rstrip("/")
+    api_key = config["immich_api_key"].strip()
+    if not url or not api_key:
+        return None
+    try:
+        req = urllib.request.Request(
+            f"{url}/api/albums", headers={"x-api-key": api_key, "Accept": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            albums = json.loads(resp.read().decode("utf-8"))
+        names = set()
+        for album in albums:
+            name = album.get("albumName") or album.get("name")
+            if name:
+                names.add(name.strip().lower())
+        return names
+    except Exception:
+        return None
+
+
+def refresh_immich_albums():
+    """Aggiorna la tabella locale degli album Immich. Non solleva errori:
+    se Immich non e' raggiungibile, i badge restano quelli che c'erano."""
+    names = fetch_immich_album_names()
+    if names is None:
+        return False
+    conn = get_db()
+    with conn:
+        conn.execute("DELETE FROM immich_albums")
+        conn.executemany(
+            "INSERT INTO immich_albums(name_lower) VALUES (?)", [(n,) for n in names]
+        )
+    conn.close()
+    return True
 
 
 def rebuild_index():
@@ -124,7 +182,9 @@ def db_list_subfolders(rel, show_hidden=False):
     rows = conn.execute(
         "SELECT path, name, "
         "EXISTS(SELECT 1 FROM folders c WHERE c.parent = folders.path) AS has_children, "
-        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden "
+        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden, "
+        "EXISTS(SELECT 1 FROM immich_albums a WHERE a.name_lower = LOWER(folders.name)) "
+        "AS in_immich "
         "FROM folders WHERE parent = ? ORDER BY name COLLATE NOCASE",
         (rel,),
     ).fetchall()
@@ -138,6 +198,7 @@ def db_list_subfolders(rel, show_hidden=False):
             "path": row["path"],
             "hasChildren": bool(row["has_children"]),
             "hidden": bool(row["is_hidden"]),
+            "inImmich": bool(row["in_immich"]),
         })
     return result
 
@@ -320,7 +381,8 @@ def api_reindex():
     if not NAS_ROOT.is_dir():
         return error_response(f"Impossibile raggiungere il NAS: {NAS_ROOT}", 503)
     rebuild_index()
-    return jsonify({"ok": True})
+    immich_ok = refresh_immich_albums()
+    return jsonify({"ok": True, "immichUpdated": immich_ok})
 
 
 @app.route("/api/thumb")
@@ -536,6 +598,11 @@ def main():
         print("Prima apertura: indicizzo le cartelle del NAS, un momento...")
         rebuild_index()
         print("Indice pronto.")
+
+    # Se Immich non e' configurato o non e' raggiungibile in questo
+    # momento, semplicemente non compaiono badge: non deve mai bloccare
+    # l'avvio dell'app.
+    refresh_immich_albums()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 

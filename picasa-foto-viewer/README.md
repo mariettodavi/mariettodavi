@@ -94,6 +94,33 @@ non valide (es. spostare una cartella dentro se stessa) e mostra un
 messaggio se qualcosa va storto (es. esiste già una cartella con quel
 nome nella destinazione).
 
+## Badge "già su Immich"
+
+Se alcune cartelle sono già state caricate come album su un server
+[Immich](https://immich.app/), l'app può mostrare un piccolo pallino
+verde ✓ accanto al nome della cartella quando esiste un album con lo
+stesso nome (confronto senza distinguere maiuscole/minuscole).
+
+Per attivarlo:
+
+1. Copia `config.example.json` e rinomina la copia in **`config.json`**
+   (stessa cartella di `app.py`).
+2. Apri `config.json` e inserisci:
+   - `immich_url`: l'indirizzo del tuo server Immich (es.
+     `http://192.168.178.85:22283`).
+   - `immich_api_key`: una API key generata da Immich (client web →
+     avatar in alto a destra → Account Settings → API Keys → New API
+     Key).
+3. Riavvia l'app (o premi **↻ Aggiorna**) e i badge compaiono da soli.
+
+`config.json` **non viene mai pubblicato su GitHub** (è escluso apposta,
+vedi `.gitignore`): la tua API key resta solo sul tuo PC. Se Immich non è
+raggiungibile o non è configurato, l'app funziona comunque normalmente,
+solo senza badge.
+
+I badge si aggiornano insieme all'indice: premi **↻ Aggiorna** dopo aver
+creato un nuovo album su Immich per vederlo comparire.
+
 ## Come funziona la cache delle miniature
 
 La prima volta che apri una cartella, l'app genera le miniature delle foto

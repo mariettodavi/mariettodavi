@@ -80,12 +80,14 @@ svg { display: block; }
 }
 .toggle.expanded { transform: rotate(90deg); }
 .folder-label {
+  display: flex; align-items: center; gap: 5px;
   padding: 3px 8px; border-radius: 999px; flex: 1; min-width: 0;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   color: var(--text-dim); transition: all .12s ease;
 }
+.folder-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .folder-label.selected { background: var(--accent-soft); color: var(--accent-hover); font-weight: 600; }
 .folder-label.is-hidden-folder { opacity: .5; font-style: italic; }
+.immich-badge { display: flex; align-items: center; flex-shrink: 0; color: #35c98c; }
 .tree-children {
   padding-left: 14px; margin-left: 9px; border-left: 1px solid var(--border);
 }
