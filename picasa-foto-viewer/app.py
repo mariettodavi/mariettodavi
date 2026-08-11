@@ -42,7 +42,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.5"
+APP_VERSION = "2.6"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -277,10 +277,18 @@ def move_cache_dir(old_rel, new_rel):
 
 
 @app.after_request
-def add_no_cache_headers(response):
-    # Evita che il browser mostri una pagina/JS vecchi dopo un aggiornamento
-    # dell'app: per una app locale a singolo utente il costo e' trascurabile.
-    response.headers["Cache-Control"] = "no-store"
+def add_cache_headers(response):
+    # La pagina e gli script/CSS non devono mai restare in cache nel
+    # browser (altrimenti dopo un aggiornamento dell'app si rischia di
+    # vedere ancora la versione vecchia). Le miniature e le foto invece
+    # possono restare in cache tranquillamente: il browser le ritiene
+    # valide finche' non cambia il percorso o la data di modifica del
+    # file, quindi navigare avanti e indietro tra le stesse cartelle non
+    # le ridownloada ogni volta dal server locale.
+    if request.path.startswith("/api/thumb") or request.path.startswith("/api/full"):
+        response.headers["Cache-Control"] = "private, max-age=3600"
+    else:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 
@@ -531,18 +539,21 @@ def main():
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 
+    # threaded=True: senza, il server gestisce una richiesta alla volta,
+    # quindi aprendo una cartella con tante foto le miniature venivano
+    # generate in fila una dopo l'altra invece che in parallelo.
     if TRAY_AVAILABLE:
         # Il server gira in un thread "daemon": se l'icona nella barra
         # delle applicazioni viene chiusa (Esci), il processo termina
         # subito, niente resta acceso in background senza che si veda.
         server_thread = threading.Thread(
-            target=lambda: app.run(host=HOST, port=PORT, debug=False, use_reloader=False),
+            target=lambda: app.run(host=HOST, port=PORT, debug=False, use_reloader=False, threaded=True),
             daemon=True,
         )
         server_thread.start()
         run_tray(url)
     else:
-        app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
+        app.run(host=HOST, port=PORT, debug=False, use_reloader=False, threaded=True)
 
 
 def build_tray_icon_image():
