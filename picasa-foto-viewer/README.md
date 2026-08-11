@@ -68,21 +68,31 @@ cartelle e foto. Aprire le cartelle è quindi istantaneo.
 - Rinominare/spostare una cartella dall'app stessa aggiorna l'indice da
   solo, senza bisogno di premere "Aggiorna".
 
-## Rinominare e spostare le cartelle
+## Rinominare, spostare, nascondere ed eliminare le cartelle
 
-Passando il mouse su una cartella nell'albero a sinistra compaiono due
-icone:
+Passando il mouse su una cartella nell'albero a sinistra compaiono
+quattro icone:
 
 - **✎ Rinomina** — chiede il nuovo nome e rinomina la cartella sul NAS.
 - **⇒ Sposta...** — apre una finestra con l'albero delle cartelle: scegli
   la cartella di destinazione (o "Picasa - Foto (cartella principale)" per
   portarla al livello più alto) e premi "Sposta qui".
+- **👁 Nascondi** — fa sparire la cartella dall'albero, ma **non tocca
+  nulla sul NAS**: è una scelta solo dell'app, reversibile in qualsiasi
+  momento. Per rivederla (e per farla ricomparire), spunta "Mostra
+  cartelle nascoste" in alto nella barra laterale: le cartelle nascoste
+  compaiono in corsivo, con l'icona che diventa "Mostra" per farle
+  tornare visibili normalmente.
+- **🗑 Elimina** — cancella per sempre la cartella e tutto il suo
+  contenuto **dal NAS**. Non è recuperabile: l'app chiede di riscrivere
+  esattamente il nome della cartella prima di abilitare il pulsante di
+  conferma, apposta per evitare click accidentali.
 
-Queste operazioni agiscono direttamente sul NAS (spostano/rinominano le
-cartelle vere, non una copia), quindi sono permanenti. L'app impedisce
-operazioni non valide (es. spostare una cartella dentro se stessa) e
-mostra un messaggio se qualcosa va storto (es. esiste già una cartella con
-quel nome nella destinazione).
+Rinomina e sposta agiscono direttamente sul NAS (sono operazioni vere,
+non su una copia), quindi sono permanenti. L'app impedisce operazioni
+non valide (es. spostare una cartella dentro se stessa) e mostra un
+messaggio se qualcosa va storto (es. esiste già una cartella con quel
+nome nella destinazione).
 
 ## Come funziona la cache delle miniature
 

@@ -19,6 +19,10 @@
         </button>
       </div>
       <div id="version-tag">v{{ app_version }}</div>
+      <label id="show-hidden-toggle">
+        <input type="checkbox" id="show-hidden-checkbox">
+        Mostra cartelle nascoste
+      </label>
       <div id="tree"></div>
     </aside>
     <main id="main">
@@ -51,6 +55,22 @@
       <div class="modal-actions">
         <button id="move-cancel">Annulla</button>
         <button id="move-confirm">Sposta qui</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-modal" class="hidden">
+    <div class="modal-box">
+      <h3>Eliminare "<span id="delete-modal-title"></span>"?</h3>
+      <p class="modal-warning">
+        Questa azione elimina per sempre la cartella e tutto il suo contenuto
+        dal NAS. Non si può annullare.
+      </p>
+      <input type="text" id="delete-confirm-input" placeholder="Scrivi il nome della cartella per confermare" autocomplete="off">
+      <div id="delete-error" class="modal-error hidden"></div>
+      <div class="modal-actions">
+        <button id="delete-cancel">Annulla</button>
+        <button id="delete-confirm" disabled>Elimina definitivamente</button>
       </div>
     </div>
   </div>

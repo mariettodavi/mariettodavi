@@ -42,7 +42,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.4"
+APP_VERSION = "2.5"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -87,6 +87,9 @@ def get_db():
         "path TEXT PRIMARY KEY, folder TEXT NOT NULL, name TEXT NOT NULL)"
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_photos_folder ON photos(folder)")
+    # Cartelle nascoste: scelta solo locale, non tocca il NAS e non viene
+    # mai cancellata da un reindex.
+    conn.execute("CREATE TABLE IF NOT EXISTS hidden_folders (path TEXT PRIMARY KEY)")
     return conn
 
 
@@ -116,19 +119,27 @@ def rebuild_index():
     conn.close()
 
 
-def db_list_subfolders(rel):
+def db_list_subfolders(rel, show_hidden=False):
     conn = get_db()
     rows = conn.execute(
         "SELECT path, name, "
-        "EXISTS(SELECT 1 FROM folders c WHERE c.parent = folders.path) AS has_children "
+        "EXISTS(SELECT 1 FROM folders c WHERE c.parent = folders.path) AS has_children, "
+        "EXISTS(SELECT 1 FROM hidden_folders h WHERE h.path = folders.path) AS is_hidden "
         "FROM folders WHERE parent = ? ORDER BY name COLLATE NOCASE",
         (rel,),
     ).fetchall()
     conn.close()
-    return [
-        {"name": row["name"], "path": row["path"], "hasChildren": bool(row["has_children"])}
-        for row in rows
-    ]
+    result = []
+    for row in rows:
+        if row["is_hidden"] and not show_hidden:
+            continue
+        result.append({
+            "name": row["name"],
+            "path": row["path"],
+            "hasChildren": bool(row["has_children"]),
+            "hidden": bool(row["is_hidden"]),
+        })
+    return result
 
 
 def db_list_photos(rel):
@@ -170,6 +181,28 @@ def db_rename_subtree(old_rel, new_rel):
                 "UPDATE photos SET path=?, folder=? WHERE path=?",
                 (new_path, new_folder, row["path"]),
             )
+
+        hidden = conn.execute(
+            "SELECT path FROM hidden_folders WHERE path = ? OR path LIKE ?",
+            (old_rel, old_rel + "/%"),
+        ).fetchall()
+        for row in hidden:
+            new_path = new_rel + row["path"][len(old_rel):]
+            conn.execute(
+                "UPDATE hidden_folders SET path=? WHERE path=?", (new_path, row["path"])
+            )
+    conn.close()
+
+
+def db_delete_subtree(rel):
+    """Rimuove dall'indice locale una cartella e tutto cio' che contiene."""
+    conn = get_db()
+    with conn:
+        conn.execute("DELETE FROM folders WHERE path = ? OR path LIKE ?", (rel, rel + "/%"))
+        conn.execute("DELETE FROM photos WHERE folder = ? OR folder LIKE ?", (rel, rel + "/%"))
+        conn.execute(
+            "DELETE FROM hidden_folders WHERE path = ? OR path LIKE ?", (rel, rel + "/%")
+        )
     conn.close()
 
 
@@ -264,7 +297,8 @@ def api_ping():
 @app.route("/api/tree")
 def api_tree():
     rel = normalize_rel(request.args.get("path", ""))
-    return jsonify(db_list_subfolders(rel))
+    show_hidden = request.args.get("showHidden") == "1"
+    return jsonify(db_list_subfolders(rel, show_hidden))
 
 
 @app.route("/api/photos")
@@ -369,6 +403,67 @@ def api_folder_move():
     move_cache_dir(rel, new_rel)
     db_rename_subtree(rel, new_rel)
     return jsonify({"path": new_rel})
+
+
+@app.route("/api/folder/hide", methods=["POST"])
+def api_folder_hide():
+    data = request.get_json(silent=True) or {}
+    rel = (data.get("path") or "").strip()
+    if not rel:
+        return error_response("Non puoi nascondere la cartella principale", 400)
+    conn = get_db()
+    with conn:
+        conn.execute("INSERT OR IGNORE INTO hidden_folders(path) VALUES (?)", (rel,))
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/folder/unhide", methods=["POST"])
+def api_folder_unhide():
+    data = request.get_json(silent=True) or {}
+    rel = (data.get("path") or "").strip()
+    conn = get_db()
+    with conn:
+        conn.execute("DELETE FROM hidden_folders WHERE path = ?", (rel,))
+    conn.close()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/folder/delete", methods=["POST"])
+def api_folder_delete():
+    """Elimina una cartella e tutto il suo contenuto DAVVERO dal NAS.
+
+    Richiede che il nome della cartella venga ridigitato esattamente come
+    conferma, per evitare cancellazioni accidentali: non e' recuperabile.
+    """
+    data = request.get_json(silent=True) or {}
+    rel = (data.get("path") or "").strip()
+    confirm_name = (data.get("confirmName") or "").strip()
+
+    if not rel:
+        return error_response("Non puoi eliminare la cartella principale", 400)
+
+    abs_path = safe_rel_path(rel)
+    if not abs_path.is_dir():
+        return error_response("Cartella non trovata", 404)
+
+    if confirm_name != abs_path.name:
+        return error_response(
+            "Il nome digitato non corrisponde al nome della cartella da eliminare", 400
+        )
+
+    try:
+        shutil.rmtree(abs_path)
+    except OSError as exc:
+        return error_response(f"Impossibile eliminare: {exc}", 500)
+
+    db_delete_subtree(rel)
+
+    cache_dir = CACHE_ROOT / rel
+    if cache_dir.is_dir():
+        shutil.rmtree(cache_dir, ignore_errors=True)
+
+    return jsonify({"ok": True})
 
 
 # ---------------------------------------------------------------------------

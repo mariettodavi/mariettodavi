@@ -2,6 +2,7 @@ const state = {
   currentPath: "",
   photos: [],
   lightboxIndex: -1,
+  showHidden: false,
 };
 
 const ICON_CHEVRON =
@@ -10,6 +11,12 @@ const ICON_RENAME =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>';
 const ICON_MOVE =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h16" /><path d="m13 6 6 6-6 6" /></svg>';
+const ICON_EYE =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" /><circle cx="12" cy="12" r="3" /></svg>';
+const ICON_EYE_OFF =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>';
+const ICON_TRASH =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>';
 
 const treeEl = document.getElementById("tree");
 const gridEl = document.getElementById("grid");
@@ -34,6 +41,12 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") moveLightbox(1);
 });
 
+const showHiddenCheckbox = document.getElementById("show-hidden-checkbox");
+showHiddenCheckbox.addEventListener("change", () => {
+  state.showHidden = showHiddenCheckbox.checked;
+  loadTreeRoot();
+});
+
 refreshBtn.addEventListener("click", async () => {
   refreshBtn.disabled = true;
   refreshBtn.title = "Aggiornamento in corso...";
@@ -53,6 +66,11 @@ async function fetchJSON(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Errore ${res.status}`);
   return res.json();
+}
+
+async function fetchTree(path) {
+  const qs = state.showHidden ? "&showHidden=1" : "";
+  return fetchJSON(`/api/tree?path=${encodeURIComponent(path)}${qs}`);
 }
 
 async function postJSON(url, body) {
@@ -87,6 +105,7 @@ function makeFolderNode(folder, container, options) {
 
   const label = document.createElement("span");
   label.className = "folder-label";
+  if (folder.hidden) label.classList.add("is-hidden-folder");
   label.textContent = folder.name;
   row.appendChild(label);
 
@@ -114,6 +133,26 @@ function makeFolderNode(folder, container, options) {
     });
     actions.appendChild(moveBtn);
 
+    const hideBtn = document.createElement("button");
+    hideBtn.className = "icon-btn";
+    hideBtn.title = folder.hidden ? "Mostra" : "Nascondi";
+    hideBtn.innerHTML = folder.hidden ? ICON_EYE : ICON_EYE_OFF;
+    hideBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleHideFolder(folder);
+    });
+    actions.appendChild(hideBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "icon-btn icon-btn-danger";
+    deleteBtn.title = "Elimina";
+    deleteBtn.innerHTML = ICON_TRASH;
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openDeleteModal(folder);
+    });
+    actions.appendChild(deleteBtn);
+
     row.appendChild(actions);
   }
 
@@ -128,7 +167,7 @@ function makeFolderNode(folder, container, options) {
 
   async function expand() {
     if (!loaded) {
-      const children = await fetchJSON(`/api/tree?path=${encodeURIComponent(folder.path)}`);
+      const children = await fetchTree(folder.path);
       children.forEach((child) => makeFolderNode(child, childrenEl, options));
       loaded = true;
     }
@@ -162,7 +201,7 @@ function makeFolderNode(folder, container, options) {
 
 async function loadTreeRoot() {
   treeEl.innerHTML = "";
-  const roots = await fetchJSON("/api/tree?path=");
+  const roots = await fetchTree("");
   const options = { rootEl: treeEl };
   roots.forEach((folder) => makeFolderNode(folder, treeEl, options));
 }
@@ -229,6 +268,76 @@ async function afterFolderChanged(oldPath, newPath) {
     await loadPhotos(newPath + state.currentPath.slice(oldPath.length));
   }
 }
+
+async function toggleHideFolder(folder) {
+  try {
+    await postJSON(folder.hidden ? "/api/folder/unhide" : "/api/folder/hide", {
+      path: folder.path,
+    });
+    const wasCurrentOrParent =
+      state.currentPath === folder.path || state.currentPath.startsWith(folder.path + "/");
+    await loadTreeRoot();
+    if (!folder.hidden && wasCurrentOrParent) {
+      // La cartella che stavi guardando e' appena stata nascosta.
+      await loadPhotos("");
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+const deleteModalEl = document.getElementById("delete-modal");
+const deleteModalTitleEl = document.getElementById("delete-modal-title");
+const deleteConfirmInput = document.getElementById("delete-confirm-input");
+const deleteErrorEl = document.getElementById("delete-error");
+const deleteConfirmBtn = document.getElementById("delete-confirm");
+const deleteCancelBtn = document.getElementById("delete-cancel");
+
+let deleteTarget = null;
+
+function openDeleteModal(folder) {
+  deleteTarget = folder;
+  deleteModalTitleEl.textContent = folder.name;
+  deleteConfirmInput.value = "";
+  deleteConfirmBtn.disabled = true;
+  deleteErrorEl.classList.add("hidden");
+  deleteModalEl.classList.remove("hidden");
+  deleteConfirmInput.focus();
+}
+
+function closeDeleteModal() {
+  deleteModalEl.classList.add("hidden");
+  deleteTarget = null;
+}
+
+deleteConfirmInput.addEventListener("input", () => {
+  deleteConfirmBtn.disabled = !deleteTarget || deleteConfirmInput.value !== deleteTarget.name;
+});
+
+deleteCancelBtn.addEventListener("click", closeDeleteModal);
+deleteModalEl.addEventListener("click", (e) => {
+  if (e.target === deleteModalEl) closeDeleteModal();
+});
+
+deleteConfirmBtn.addEventListener("click", async () => {
+  if (!deleteTarget) return;
+  deleteErrorEl.classList.add("hidden");
+  try {
+    await postJSON("/api/folder/delete", {
+      path: deleteTarget.path,
+      confirmName: deleteConfirmInput.value,
+    });
+    const deletedPath = deleteTarget.path;
+    closeDeleteModal();
+    await loadTreeRoot();
+    if (state.currentPath === deletedPath || state.currentPath.startsWith(deletedPath + "/")) {
+      await loadPhotos("");
+    }
+  } catch (err) {
+    deleteErrorEl.textContent = err.message;
+    deleteErrorEl.classList.remove("hidden");
+  }
+});
 
 async function renameFolder(folder) {
   const input = window.prompt(`Nuovo nome per "${folder.name}":`, folder.name);
