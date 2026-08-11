@@ -49,6 +49,29 @@ showHiddenCheckbox.addEventListener("change", () => {
   loadTreeRoot();
 });
 
+const immichStatusEl = document.getElementById("immich-status");
+
+async function loadImmichStatus() {
+  try {
+    const status = await fetchJSON("/api/immich/status");
+    if (!status.configured) {
+      immichStatusEl.classList.add("hidden");
+      return;
+    }
+    immichStatusEl.classList.remove("hidden");
+    if (status.ok) {
+      immichStatusEl.textContent = `Immich: ${status.albumCount} album trovati`;
+      immichStatusEl.className = "immich-ok";
+    } else {
+      immichStatusEl.textContent = `Immich: ${status.error || "errore sconosciuto"}`;
+      immichStatusEl.className = "immich-error";
+    }
+  } catch (err) {
+    // Non e' grave se questa chiamata fallisce: i badge restano quelli
+    // che c'erano, la navigazione delle foto non dipende da questo.
+  }
+}
+
 refreshBtn.addEventListener("click", async () => {
   refreshBtn.disabled = true;
   refreshBtn.title = "Aggiornamento in corso...";
@@ -56,6 +79,13 @@ refreshBtn.addEventListener("click", async () => {
     await postJSON("/api/reindex", {});
     await loadTreeRoot();
     await loadPhotos(state.currentPath, true);
+    loadImmichStatus();
+    // L'aggiornamento di Immich gira in background sul server: dopo
+    // qualche secondo ricontrolliamo lo stato e i badge.
+    setTimeout(() => {
+      loadImmichStatus();
+      loadTreeRoot();
+    }, 3000);
   } catch (err) {
     alert(`Aggiornamento non riuscito: ${err.message}`);
   } finally {
@@ -430,3 +460,10 @@ moveConfirmBtn.addEventListener("click", async () => {
 
 loadTreeRoot();
 loadPhotos("");
+loadImmichStatus();
+// All'avvio l'aggiornamento di Immich parte in background sul server:
+// ricontrolliamo tra qualche secondo per prendere l'esito e i badge.
+setTimeout(() => {
+  loadImmichStatus();
+  loadTreeRoot();
+}, 3000);

@@ -16,6 +16,7 @@ import shutil
 import sqlite3
 import sys
 import threading
+import urllib.error
 import urllib.request
 import webbrowser
 from pathlib import Path
@@ -42,7 +43,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.7"
+APP_VERSION = "2.8"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -111,36 +112,62 @@ def get_db():
     return conn
 
 
+# Stato dell'ultimo tentativo di collegamento a Immich, mostrato nell'app
+# cosi' non serve indovinare a distanza perche' i badge non compaiono.
+IMMICH_STATUS = {"configured": False, "ok": False, "error": None, "albumCount": 0}
+
+
 def fetch_immich_album_names():
-    """Scarica i nomi degli album da Immich. None se non configurato o non
-    raggiungibile (l'app deve continuare a funzionare anche senza Immich)."""
+    """Scarica i nomi degli album da Immich.
+
+    Ritorna (nomi, None) se va bene, oppure (None, messaggio_errore) —
+    il messaggio serve a capire subito cosa non va, senza dover
+    indovinare (config mancante, url sbagliato, chiave sbagliata, ecc.).
+    """
     config = load_config()
     url = config["immich_url"].strip().rstrip("/")
     api_key = config["immich_api_key"].strip()
     if not url or not api_key:
-        return None
+        return None, "config.json mancante o incompleto (serve immich_url e immich_api_key)"
     try:
         req = urllib.request.Request(
             f"{url}/api/albums", headers={"x-api-key": api_key, "Accept": "application/json"}
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=3) as resp:
             albums = json.loads(resp.read().decode("utf-8"))
+        if not isinstance(albums, list):
+            return None, "risposta di Immich in un formato inatteso"
         names = set()
         for album in albums:
             name = album.get("albumName") or album.get("name")
             if name:
                 names.add(name.strip().lower())
-        return names
-    except Exception:
-        return None
+        return names, None
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            return None, "Immich ha rifiutato la API key (401, controlla config.json)"
+        return None, f"Immich ha risposto con errore {exc.code}"
+    except urllib.error.URLError as exc:
+        return None, f"impossibile raggiungere {url}: {exc.reason}"
+    except TimeoutError:
+        return None, f"{url} non ha risposto in tempo (controlla indirizzo/porta)"
+    except Exception as exc:
+        return None, f"errore imprevisto: {exc}"
 
 
 def refresh_immich_albums():
-    """Aggiorna la tabella locale degli album Immich. Non solleva errori:
-    se Immich non e' raggiungibile, i badge restano quelli che c'erano."""
-    names = fetch_immich_album_names()
+    """Aggiorna la tabella locale degli album Immich (bloccante: va chiamata
+    sempre in un thread separato, vedi refresh_immich_albums_async)."""
+    config = load_config()
+    configured = bool(config["immich_url"].strip() and config["immich_api_key"].strip())
+    IMMICH_STATUS["configured"] = configured
+
+    names, error = fetch_immich_album_names()
     if names is None:
+        IMMICH_STATUS["ok"] = False
+        IMMICH_STATUS["error"] = error
         return False
+
     conn = get_db()
     with conn:
         conn.execute("DELETE FROM immich_albums")
@@ -148,7 +175,17 @@ def refresh_immich_albums():
             "INSERT INTO immich_albums(name_lower) VALUES (?)", [(n,) for n in names]
         )
     conn.close()
+    IMMICH_STATUS["ok"] = True
+    IMMICH_STATUS["error"] = None
+    IMMICH_STATUS["albumCount"] = len(names)
     return True
+
+
+def refresh_immich_albums_async():
+    """Come refresh_immich_albums, ma in background: una Immich lenta o
+    irraggiungibile non deve mai rallentare l'avvio dell'app o il pulsante
+    Aggiorna (era proprio questo il bug che rallentava tutto)."""
+    threading.Thread(target=refresh_immich_albums, daemon=True).start()
 
 
 def rebuild_index():
@@ -381,8 +418,13 @@ def api_reindex():
     if not NAS_ROOT.is_dir():
         return error_response(f"Impossibile raggiungere il NAS: {NAS_ROOT}", 503)
     rebuild_index()
-    immich_ok = refresh_immich_albums()
-    return jsonify({"ok": True, "immichUpdated": immich_ok})
+    refresh_immich_albums_async()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/immich/status")
+def api_immich_status():
+    return jsonify(IMMICH_STATUS)
 
 
 @app.route("/api/thumb")
@@ -599,10 +641,10 @@ def main():
         rebuild_index()
         print("Indice pronto.")
 
-    # Se Immich non e' configurato o non e' raggiungibile in questo
-    # momento, semplicemente non compaiono badge: non deve mai bloccare
-    # l'avvio dell'app.
-    refresh_immich_albums()
+    # In background: se Immich non e' configurato, e' lento o non e'
+    # raggiungibile in questo momento, l'avvio dell'app non deve MAI
+    # aspettarlo (era proprio questo il bug che rallentava tutto).
+    refresh_immich_albums_async()
 
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 

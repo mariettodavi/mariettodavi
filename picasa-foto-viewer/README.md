@@ -114,9 +114,16 @@ Per attivarlo:
 3. Riavvia l'app (o premi **↻ Aggiorna**) e i badge compaiono da soli.
 
 `config.json` **non viene mai pubblicato su GitHub** (è escluso apposta,
-vedi `.gitignore`): la tua API key resta solo sul tuo PC. Se Immich non è
-raggiungibile o non è configurato, l'app funziona comunque normalmente,
-solo senza badge.
+vedi `.gitignore`): la tua API key resta solo sul tuo PC. Il collegamento
+a Immich gira sempre in background: se non è configurato, è lento o non
+è raggiungibile, l'app continua a funzionare normalmente e non aspetta
+mai — semplicemente non compaiono badge.
+
+Sotto "Mostra cartelle nascoste" compare una riga di stato che dice
+esattamente cosa succede: **"Immich: N album trovati"** (verde) se va
+tutto bene, oppure il motivo preciso se qualcosa non va (es. API key
+sbagliata, indirizzo non raggiungibile) — utile per capire subito cosa
+correggere in `config.json` senza doverlo indovinare.
 
 I badge si aggiornano insieme all'indice: premi **↻ Aggiorna** dopo aver
 creato un nuovo album su Immich per vederlo comparire.
