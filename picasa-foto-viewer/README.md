@@ -103,8 +103,15 @@ stesso nome (confronto senza distinguere maiuscole/minuscole).
 
 Per attivarlo:
 
-1. Copia `config.example.json` e rinomina la copia in **`config.json`**
-   (stessa cartella di `app.py`).
+1. Copia `config.example.json` e rinomina la copia in **`config.json`**.
+   **Attenzione a dove la metti**, perché dipende da come usi l'app:
+   - Se usi l'eseguibile (`PicasaFotoViewer.exe`): `config.json` va nella
+     cartella **`dist`**, accanto a `PicasaFotoViewer.exe` — **non** nella
+     cartella principale del progetto dove sta `app.py`. Sono due
+     cartelle diverse e l'app cerca `config.json` solo accanto a se
+     stessa.
+   - Se usi `run.bat` (senza eseguibile): `config.json` va nella stessa
+     cartella di `app.py`.
 2. Apri `config.json` e inserisci:
    - `immich_url`: l'indirizzo del tuo server Immich (es.
      `http://192.168.178.85:22283`).
