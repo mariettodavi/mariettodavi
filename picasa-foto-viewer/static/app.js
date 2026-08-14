@@ -62,6 +62,12 @@ async function loadImmichStatus() {
     if (status.ok) {
       immichStatusEl.textContent = `Immich: ${status.albumCount} album trovati`;
       immichStatusEl.className = "immich-ok";
+    } else if (!status.checked) {
+      // Il controllo in background non ha ancora risposto: non e' un
+      // errore, e' solo in corso. Senza questo caso si vedeva per
+      // qualche secondo un falso "errore sconosciuto" ad ogni avvio.
+      immichStatusEl.textContent = "Immich: verifica in corso...";
+      immichStatusEl.className = "";
     } else {
       immichStatusEl.textContent = `Immich: ${status.error || "errore sconosciuto"}`;
       immichStatusEl.className = "immich-error";

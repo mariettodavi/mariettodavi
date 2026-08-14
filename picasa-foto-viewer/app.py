@@ -46,7 +46,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.18"
+APP_VERSION = "2.19"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -169,7 +169,12 @@ def get_db():
 
 # Stato dell'ultimo tentativo di collegamento a Immich, mostrato nell'app
 # cosi' non serve indovinare a distanza perche' i badge non compaiono.
-IMMICH_STATUS = {"configured": False, "ok": False, "error": None, "albumCount": 0}
+# "checked" parte False e diventa True solo alla FINE del primo controllo:
+# serve a distinguere "non ho ancora controllato" da "ho controllato ed e'
+# andata male", altrimenti nei primi secondi dopo l'avvio (mentre il
+# controllo gira ancora in background) l'interfaccia mostrava un falso
+# "errore sconosciuto" solo perche' non c'era ancora stata risposta.
+IMMICH_STATUS = {"configured": False, "ok": False, "error": None, "albumCount": 0, "checked": False}
 
 
 def fetch_immich_album_names():
@@ -224,6 +229,7 @@ def refresh_immich_albums():
     if names is None:
         IMMICH_STATUS["ok"] = False
         IMMICH_STATUS["error"] = error
+        IMMICH_STATUS["checked"] = True
         return False
 
     conn = get_db()
@@ -236,6 +242,7 @@ def refresh_immich_albums():
     IMMICH_STATUS["ok"] = True
     IMMICH_STATUS["error"] = None
     IMMICH_STATUS["albumCount"] = len(names)
+    IMMICH_STATUS["checked"] = True
     return True
 
 
@@ -847,6 +854,12 @@ def run_tray(url):
 
     def on_quit(icon, item):
         icon.stop()
+        # icon.stop() da solo a volte non basta a far tornare icon.run():
+        # se qualcosa nella notifica di Windows resta appeso, il processo
+        # (e il server Flask nel thread in background) restava vivo senza
+        # finestra visibile. os._exit(0) chiude tutto, subito, senza
+        # aspettare nessuno.
+        os._exit(0)
 
     menu = pystray.Menu(
         pystray.MenuItem("Apri Picasa Foto Viewer", on_open, default=True),
