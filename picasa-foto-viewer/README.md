@@ -41,53 +41,67 @@ qualche riga se i tempi ti sembrano fuori norma, così capiamo se il
 collo di bottiglia è la rete verso il NAS o altro. Il file si può
 cancellare in qualsiasi momento, si ricrea da solo.
 
-## Come si usa (consigliato: un unico .exe, senza Python)
+## Dove vive il programma (percorso fisso, sempre lo stesso)
 
-1. La prima volta, doppio click su `build_exe.bat`. Installa in automatico
-   quello che serve e crea `PicasaFotoViewer.exe` dentro la cartella
-   `dist`. Serve una volta sola (e serve Python installato solo per
-   *creare* l'eseguibile, non per usarlo dopo).
-2. Sposta `dist\PicasaFotoViewer.exe` dove preferisci (Desktop, una
-   cartella qualsiasi) — è un file unico, autosufficiente.
-3. Da quel momento, doppio click su `PicasaFotoViewer.exe` per aprire
-   l'app: niente più Python, niente più "pip install" ad ogni avvio.
+Il programma vive **sempre e solo** in:
 
-In alternativa, se preferisci non creare l'eseguibile, puoi continuare a
-usare `run.bat` (richiede Python installato, vedi sotto).
+```
+C:\PicasaFotoViewer
+```
+
+Non spostarlo, non copiarlo in altre cartelle: se ci sono più copie in
+giro (es. `Picasa - Claude`, `App - Picasa - Claude`, cartelle di zip
+scaricati a mano) si crea solo confusione su quale sia "quella giusta".
+`C:\PicasaFotoViewer` è l'unica cartella che conta.
+
+Per aprire e aggiornare il programma nella vita di tutti i giorni usa
+**solo le due icone sul Desktop** (create automaticamente, vedi sotto):
+
+- **"Picasa Foto Viewer"** → apre il programma
+- **"Aggiorna Picasa Foto Viewer"** → lo aggiorna all'ultima versione
+
+Non serve mai cercare file dentro le cartelle a mano.
+
+## Prima installazione (una volta sola)
+
+1. Scarica questo unico file:
+   `https://raw.githubusercontent.com/mariettodavi/mariettodavi/claude/nuovo-progetto-foto-picasa-4d56p7/picasa-foto-viewer/aggiorna.bat`
+   (salvalo dove preferisci, es. Download — la posizione da cui lo lanci
+   non conta, perché installa sempre in `C:\PicasaFotoViewer`).
+2. Doppio click su quel file. Fa tutto da solo:
+   - scarica l'ultima versione del programma da GitHub
+   - la mette in `C:\PicasaFotoViewer`
+   - compila `PicasaFotoViewer.exe` (serve Python installato solo per
+     questo passaggio, non per usare il programma dopo)
+   - crea le due icone sul Desktop descritte sopra
+3. Da quel momento, per aprire il programma usa sempre l'icona
+   "Picasa Foto Viewer" sul Desktop.
+
+Ogni passaggio termina sempre con un messaggio e "premi un tasto per
+continuare", quindi la finestra non si chiude mai da sola senza farti
+leggere cosa è successo.
 
 ## Come aggiornare a una versione nuova (procedura guidata)
 
-Doppio click su **`aggiorna.bat`**, dentro la cartella del progetto.
+Doppio click sull'icona **"Aggiorna Picasa Foto Viewer"** sul Desktop.
 Fa tutto da solo, senza dover scaricare zip o copiare file a mano:
 
 1. Chiude l'app se è aperta
 2. Scarica l'ultima versione da GitHub
-3. Sostituisce i file del programma con quelli nuovi
+3. Sostituisce i file del programma con quelli nuovi (sempre dentro
+   `C:\PicasaFotoViewer`, mai altrove)
 4. Ricompila `PicasaFotoViewer.exe`
+5. Ricrea le icone sul Desktop (utile anche se le avessi cancellate per
+   sbaglio)
 
-Alla fine ti dice dove trovare il programma aggiornato. Ti serve solo
-premere Invio un paio di volte quando richiesto, non c'è altro da fare.
-Serve una connessione internet e Python già installato (lo stesso che
-usi già per `build_exe.bat`). Ogni passaggio termina sempre con un
-messaggio e "premi un tasto per continuare", quindi la finestra non si
-chiude mai da sola senza farti leggere cosa è successo.
+Serve solo premere Invio un paio di volte quando richiesto. Serve una
+connessione internet e Python già installato.
 
-`aggiorna.bat` aggiorna tutti i file del programma **tranne se stesso**
-(apposta, per non rischiare di modificarsi mentre è in esecuzione). Se
-in futuro esce una versione corretta di `aggiorna.bat`, va ripresa a
-mano una volta sola con lo stesso metodo di oggi (salvando di nuovo solo
-quel file); il resto dell'aggiornamento resta automatico.
-
-Se preferisci farlo a mano: chiudi l'app dall'icona nella barra, scarica
-di nuovo lo zip del progetto, sostituisci tutta la cartella
-`picasa-foto-viewer` con quella nuova, cancella `build`/`dist`/`*.spec`
-se presenti, ricompila con `build_exe.bat`.
-
-In entrambi i casi, indice, cache delle miniature e `config.json`
-**non stanno più dentro la cartella del progetto**: vivono in una
-cartella fissa del tuo profilo Windows
-(`%LOCALAPPDATA%\PicasaFotoViewer`) che non tocchi mai quando aggiorni,
-quindi non li perdi né devi copiarli a mano da nessuna parte.
+Indice, cache delle miniature e `config.json` **non stanno dentro
+`C:\PicasaFotoViewer`**: vivono in una cartella fissa a parte, nel tuo
+profilo Windows (`%LOCALAPPDATA%\PicasaFotoViewer`), che l'aggiornamento
+non tocca mai — quindi non li perdi né devi copiarli a mano da nessuna
+parte.
 
 **Nota una tantum**: se stai aggiornando da una versione precedente alla
 2.17, la primissima volta che apri la nuova build l'app sposta da sola

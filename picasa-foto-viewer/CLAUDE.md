@@ -36,3 +36,24 @@ residui" — ma su quella versione `dist/` conteneva ancora i dati veri
 automatica (`migrate_legacy_data()` in `app.py`) esiste apposta per questi
 casi, ma va eseguita PRIMA di cancellare la vecchia cartella `dist`, non
 dopo. Qualunque istruzione di aggiornamento futura deve tenerne conto.
+
+## Regola fondamentale #2: il programma vive in UN SOLO posto fisso
+
+Prima di questa regola, `aggiorna.bat` operava nella cartella in cui si
+trovava (`%~dp0`). Risultato reale: l'utente ha finito con il programma
+sparso in piu' cartelle diverse (`Picasa - Claude`, `App - Picasa - Claude`,
+cartelle di zip scaricati a mano...) senza piu' sapere quale fosse
+"quella giusta", con perdita di ore a cercare file.
+
+Da questa versione, `aggiorna.bat` usa un percorso **fisso e hardcoded**,
+non relativo a se stesso: `C:\PicasaFotoViewer\`. Va lanciato da
+qualunque posizione (Desktop, Download, ovunque) e installa/aggiorna
+SEMPRE quella stessa cartella, mai una copia nuova altrove. Alla fine crea
+anche due collegamenti sul Desktop ("Picasa Foto Viewer" per aprire,
+"Aggiorna Picasa Foto Viewer" per aggiornare) cosi' l'utente non deve mai
+piu' cercare file dentro le cartelle a mano.
+
+**Non cambiare mai questo percorso fisso senza un motivo esplicito
+dell'utente.** Se in futuro serve cambiarlo, va migrato con lo stesso
+criterio di `migrate_legacy_data()`: mai lasciare l'utente a dover
+cercare/spostare file a mano.

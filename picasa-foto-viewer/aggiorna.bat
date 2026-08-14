@@ -1,32 +1,40 @@
 @echo off
-title Aggiornamento Picasa Foto Viewer
+title Picasa Foto Viewer - Installazione/Aggiornamento
 
-set "TARGET_DIR=%~dp0"
+REM Cartella FISSA: il programma vive SEMPRE qui, qualunque sia la
+REM cartella da cui lanci questo file (Desktop, Download, ovunque).
+REM Cosi' non si creano piu' copie sparse in posti diversi e non si
+REM perde mai il filo di "qual e' quella giusta".
+set "TARGET_DIR=C:\PicasaFotoViewer\"
 set "ZIP_URL=https://github.com/mariettodavi/mariettodavi/archive/refs/heads/claude/nuovo-progetto-foto-picasa-4d56p7.zip"
 set "WORK_DIR=%TEMP%\picasa_update_%RANDOM%"
 set "ZIP_FILE=%WORK_DIR%\update.zip"
+set "DESKTOP=%USERPROFILE%\Desktop"
 
 echo ============================================
-echo   Aggiornamento Picasa Foto Viewer
+echo   Picasa Foto Viewer - Installazione/Aggiornamento
 echo ============================================
 echo.
+echo Il programma vive sempre in: %TARGET_DIR%
+echo (non importa da dove hai lanciato questo file)
+echo.
 
-echo [1/5] Chiudo l'app se e' in esecuzione...
+echo [1/6] Chiudo l'app se e' in esecuzione...
 taskkill /IM PicasaFotoViewer.exe /F >nul 2>&1
 
+mkdir "%TARGET_DIR%" 2>nul
 mkdir "%WORK_DIR%" 2>nul
 
-echo [2/5] Scarico l'ultima versione da GitHub...
+echo [2/6] Scarico l'ultima versione da GitHub...
 powershell -NoProfile -Command "$ProgressPreference='SilentlyContinue'; try { Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_FILE%' -UseBasicParsing } catch { exit 1 }"
 if not exist "%ZIP_FILE%" (
     echo.
     echo ERRORE: il download non e' riuscito. Controlla la connessione internet e riprova.
-    echo Se il problema persiste, aggiorna a mano seguendo le istruzioni nel README.
     pause
     exit /b 1
 )
 
-echo [3/5] Estraggo i file scaricati...
+echo [3/6] Estraggo i file scaricati...
 powershell -NoProfile -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%WORK_DIR%\extracted' -Force"
 
 set "SOURCE_DIR="
@@ -35,12 +43,11 @@ for /d %%D in ("%WORK_DIR%\extracted\*") do set "SOURCE_DIR=%%D\picasa-foto-view
 if not exist "%SOURCE_DIR%" (
     echo.
     echo ERRORE: non trovo la cartella picasa-foto-viewer nello zip scaricato.
-    echo Aggiorna a mano per questa volta seguendo le istruzioni nel README.
     pause
     exit /b 1
 )
 
-echo [4/5] Controllo se ci sono dati da versioni vecchie da salvare prima di pulire...
+echo [4/6] Controllo se ci sono dati da versioni vecchie da salvare prima di pulire...
 set "OLD_DIST=%TARGET_DIR%dist"
 set "NEW_DATA_DIR=%LOCALAPPDATA%\PicasaFotoViewer"
 if exist "%OLD_DIST%\config.json" if not exist "%NEW_DATA_DIR%\config.json" (
@@ -69,25 +76,29 @@ if exist "%TARGET_DIR%dist" rmdir /s /q "%TARGET_DIR%dist"
 del /q "%TARGET_DIR%*.spec" >nul 2>&1
 
 REM Questo file (aggiorna.bat) viene escluso apposta dalla sostituzione:
-REM non tocca mai se stesso mentre e' in esecuzione. Se in futuro esce
-REM una versione nuova di aggiorna.bat, va aggiornata a mano una volta
-REM (scaricando di nuovo solo questo file), poi torna ad aggiornarsi da
-REM solo per tutto il resto.
+REM non tocca mai se stesso mentre e' in esecuzione.
 echo aggiorna.bat> "%WORK_DIR%\esclusi.txt"
 xcopy "%SOURCE_DIR%\*" "%TARGET_DIR%" /E /Y /I "/EXCLUDE:%WORK_DIR%\esclusi.txt" >nul
 
 rmdir /s /q "%WORK_DIR%" 2>nul
 
-echo [5/5] Ricompilo l'eseguibile (puo' richiedere qualche minuto)...
+echo [5/6] Ricompilo l'eseguibile (puo' richiedere qualche minuto)...
 echo.
 call "%TARGET_DIR%build_exe.bat"
 
+echo [6/6] Sistemo le icone sul Desktop...
+powershell -NoProfile -Command "$w = New-Object -ComObject WScript.Shell; $s1 = $w.CreateShortcut('%DESKTOP%\Picasa Foto Viewer.lnk'); $s1.TargetPath = '%TARGET_DIR%dist\PicasaFotoViewer.exe'; $s1.WorkingDirectory = '%TARGET_DIR%dist'; $s1.Save(); $s2 = $w.CreateShortcut('%DESKTOP%\Aggiorna Picasa Foto Viewer.lnk'); $s2.TargetPath = '%TARGET_DIR%aggiorna.bat'; $s2.WorkingDirectory = '%TARGET_DIR%'; $s2.Save()"
+
 echo.
 echo ============================================
-echo   Aggiornamento completato!
-echo   Trovi il programma aggiornato in:
-echo   %TARGET_DIR%dist\PicasaFotoViewer.exe
+echo   Fatto!
 echo ============================================
+echo.
+echo Sul Desktop trovi ora due icone, usa sempre e solo quelle,
+echo non cercare piu' file dentro le cartelle:
+echo.
+echo   - "Picasa Foto Viewer"           per APRIRE il programma
+echo   - "Aggiorna Picasa Foto Viewer"  per AGGIORNARLO in futuro
 echo.
 echo (I tuoi dati - indice, miniature, configurazione Immich - sono al
 echo  sicuro: non stanno in questa cartella, quindi non sono stati toccati.)
