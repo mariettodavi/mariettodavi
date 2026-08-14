@@ -96,6 +96,34 @@ async function pollPrecacheStatus() {
 }
 setInterval(pollPrecacheStatus, 2000);
 
+const indexStatusEl = document.getElementById("index-status");
+let wasIndexing = false;
+
+async function pollIndexStatus() {
+  try {
+    const status = await fetchJSON("/api/index/status");
+    if (status.running) {
+      wasIndexing = true;
+      indexStatusEl.classList.remove("hidden");
+      indexStatusEl.textContent =
+        "Indicizzo cartelle e foto dal NAS (prima apertura, puo' richiedere qualche minuto)...";
+    } else {
+      indexStatusEl.classList.add("hidden");
+      if (wasIndexing) {
+        // L'indicizzazione e' appena finita: l'albero mostrato finora
+        // poteva essere vuoto perche' l'indice non c'era ancora pronto.
+        wasIndexing = false;
+        loadTreeRoot();
+        loadPhotos(state.currentPath, true);
+      }
+    }
+  } catch (err) {
+    // Non e' grave se questa chiamata fallisce: e' solo un indicatore.
+  }
+}
+setInterval(pollIndexStatus, 2000);
+pollIndexStatus();
+
 refreshBtn.addEventListener("click", async () => {
   refreshBtn.disabled = true;
   refreshBtn.title = "Aggiornamento in corso...";

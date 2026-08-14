@@ -46,7 +46,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.19"
+APP_VERSION = "2.20"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -253,30 +253,41 @@ def refresh_immich_albums_async():
     threading.Thread(target=refresh_immich_albums, daemon=True).start()
 
 
+# Stato dell'ultima (ri)costruzione dell'indice, mostrato nell'interfaccia
+# durante la primissima apertura: senza questo, mentre gira os.walk() su
+# tutto il NAS (puo' richiedere ore su una libreria grande via rete) la
+# pagina restava vuota senza dire perche', sembrando bloccata o rotta.
+INDEX_STATUS = {"running": False}
+
+
 def rebuild_index():
     """Rilegge tutto l'albero dal NAS e ricostruisce l'indice locale."""
-    conn = get_db()
-    with conn:
-        conn.execute("DELETE FROM folders")
-        conn.execute("DELETE FROM photos")
-        for dirpath, dirnames, filenames in os.walk(NAS_ROOT):
-            dirnames.sort(key=str.lower)
-            rel_dir = os.path.relpath(dirpath, NAS_ROOT)
-            rel_dir = "" if rel_dir == "." else rel_dir.replace("\\", "/")
-            for name in dirnames:
-                child_rel = f"{rel_dir}/{name}" if rel_dir else name
-                conn.execute(
-                    "INSERT INTO folders(path, parent, name) VALUES (?, ?, ?)",
-                    (child_rel, rel_dir, name),
-                )
-            for name in filenames:
-                if Path(name).suffix.lower() in IMAGE_EXTENSIONS:
+    INDEX_STATUS["running"] = True
+    try:
+        conn = get_db()
+        with conn:
+            conn.execute("DELETE FROM folders")
+            conn.execute("DELETE FROM photos")
+            for dirpath, dirnames, filenames in os.walk(NAS_ROOT):
+                dirnames.sort(key=str.lower)
+                rel_dir = os.path.relpath(dirpath, NAS_ROOT)
+                rel_dir = "" if rel_dir == "." else rel_dir.replace("\\", "/")
+                for name in dirnames:
                     child_rel = f"{rel_dir}/{name}" if rel_dir else name
                     conn.execute(
-                        "INSERT INTO photos(path, folder, name) VALUES (?, ?, ?)",
+                        "INSERT INTO folders(path, parent, name) VALUES (?, ?, ?)",
                         (child_rel, rel_dir, name),
                     )
-    conn.close()
+                for name in filenames:
+                    if Path(name).suffix.lower() in IMAGE_EXTENSIONS:
+                        child_rel = f"{rel_dir}/{name}" if rel_dir else name
+                        conn.execute(
+                            "INSERT INTO photos(path, folder, name) VALUES (?, ?, ?)",
+                            (child_rel, rel_dir, name),
+                        )
+        conn.close()
+    finally:
+        INDEX_STATUS["running"] = False
 
 
 def folder_matches_immich_album(folder_name, immich_names_lower):
@@ -573,6 +584,11 @@ def api_precache_status():
     return jsonify(PRECACHE_STATUS)
 
 
+@app.route("/api/index/status")
+def api_index_status():
+    return jsonify(INDEX_STATUS)
+
+
 @app.route("/api/immich/albums")
 def api_immich_albums_debug():
     """Elenco (in minuscolo) degli album letti da Immich, solo per
@@ -793,13 +809,21 @@ def main():
         print(f"ATTENZIONE: non trovo la cartella del NAS: {NAS_ROOT}")
 
     if not DB_PATH.exists() and NAS_ROOT.is_dir():
-        # Primissimo avvio in assoluto: qui blocchiamo, perche' senza un
-        # indice non c'e' comunque nulla da mostrare appena si apre il
-        # browser.
-        print("Prima apertura: indicizzo le cartelle del NAS, un momento...")
-        rebuild_index()
-        print("Indice pronto.")
-        precache_thumbnails_async()
+        # Primissimo avvio in assoluto: anche qui NON blocchiamo piu'.
+        # Prima il server partiva solo DOPO che tutta questa scansione del
+        # NAS finiva: su una libreria grande, con un NAS lento in rete,
+        # significava ore in cui il browser non aveva nemmeno un server
+        # ad aspettarlo dall'altra parte (sembrava tutto bloccato/rotto,
+        # non era ne' l'uno ne' l'altro). Il server parte subito, e la
+        # sidebar mostra "Indicizzo..." finche' questa scansione in
+        # sottofondo non e' finita (vedi INDEX_STATUS).
+        print("Prima apertura: indicizzo le cartelle del NAS in sottofondo...")
+
+        def first_index_then_precache():
+            rebuild_index()
+            precache_thumbnails_async()
+
+        threading.Thread(target=first_index_then_precache, daemon=True).start()
     elif NAS_ROOT.is_dir():
         # Avvii successivi: l'indice di prima esiste gia', quindi il
         # browser puo' aprirsi subito con quello. In background lo
