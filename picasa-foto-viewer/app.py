@@ -46,7 +46,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.17"
+APP_VERSION = "2.18"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -457,7 +457,7 @@ def ensure_thumbnail(abs_source):
 # nell'app cosi' si vede il progresso invece di scoprirlo per caso.
 PRECACHE_STATUS = {"running": False, "total": 0, "done": 0}
 PRECACHE_LOCK = threading.Lock()
-PRECACHE_WORKERS = 4  # non troppi, per non intasare il NAS mentre navighi
+PRECACHE_WORKERS = 12  # librerie molto grandi impiegavano ore con solo 4
 
 
 def precache_thumbnails_worker():
