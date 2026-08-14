@@ -160,6 +160,7 @@ function makeFolderNode(folder, container, options) {
   const labelText = document.createElement("span");
   labelText.className = "folder-label-text";
   labelText.textContent = folder.name;
+  labelText.title = folder.name;
   label.appendChild(labelText);
 
   if (folder.inImmich) {
