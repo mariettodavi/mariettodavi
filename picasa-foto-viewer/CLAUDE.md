@@ -46,7 +46,7 @@ cartelle di zip scaricati a mano...) senza piu' sapere quale fosse
 "quella giusta", con perdita di ore a cercare file.
 
 Da questa versione, `aggiorna.bat` usa un percorso **fisso e hardcoded**,
-non relativo a se stesso: `C:\PicasaFotoViewer\`. Va lanciato da
+non relativo a se stesso: `%USERPROFILE%\PicasaFotoViewer\`. Va lanciato da
 qualunque posizione (Desktop, Download, ovunque) e installa/aggiorna
 SEMPRE quella stessa cartella, mai una copia nuova altrove. Alla fine crea
 anche due collegamenti sul Desktop ("Picasa Foto Viewer" per aprire,

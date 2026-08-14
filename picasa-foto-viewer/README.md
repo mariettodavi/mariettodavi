@@ -46,13 +46,13 @@ cancellare in qualsiasi momento, si ricrea da solo.
 Il programma vive **sempre e solo** in:
 
 ```
-C:\PicasaFotoViewer
+%USERPROFILE%\PicasaFotoViewer
 ```
 
 Non spostarlo, non copiarlo in altre cartelle: se ci sono più copie in
 giro (es. `Picasa - Claude`, `App - Picasa - Claude`, cartelle di zip
 scaricati a mano) si crea solo confusione su quale sia "quella giusta".
-`C:\PicasaFotoViewer` è l'unica cartella che conta.
+`%USERPROFILE%\PicasaFotoViewer` è l'unica cartella che conta.
 
 Per aprire e aggiornare il programma nella vita di tutti i giorni usa
 **solo le due icone sul Desktop** (create automaticamente, vedi sotto):
@@ -67,10 +67,10 @@ Non serve mai cercare file dentro le cartelle a mano.
 1. Scarica questo unico file:
    `https://raw.githubusercontent.com/mariettodavi/mariettodavi/claude/nuovo-progetto-foto-picasa-4d56p7/picasa-foto-viewer/aggiorna.bat`
    (salvalo dove preferisci, es. Download — la posizione da cui lo lanci
-   non conta, perché installa sempre in `C:\PicasaFotoViewer`).
+   non conta, perché installa sempre in `%USERPROFILE%\PicasaFotoViewer`).
 2. Doppio click su quel file. Fa tutto da solo:
    - scarica l'ultima versione del programma da GitHub
-   - la mette in `C:\PicasaFotoViewer`
+   - la mette in `%USERPROFILE%\PicasaFotoViewer`
    - compila `PicasaFotoViewer.exe` (serve Python installato solo per
      questo passaggio, non per usare il programma dopo)
    - crea le due icone sul Desktop descritte sopra
@@ -89,7 +89,7 @@ Fa tutto da solo, senza dover scaricare zip o copiare file a mano:
 1. Chiude l'app se è aperta
 2. Scarica l'ultima versione da GitHub
 3. Sostituisce i file del programma con quelli nuovi (sempre dentro
-   `C:\PicasaFotoViewer`, mai altrove)
+   `%USERPROFILE%\PicasaFotoViewer`, mai altrove)
 4. Ricompila `PicasaFotoViewer.exe`
 5. Ricrea le icone sul Desktop (utile anche se le avessi cancellate per
    sbaglio)
@@ -98,7 +98,7 @@ Serve solo premere Invio un paio di volte quando richiesto. Serve una
 connessione internet e Python già installato.
 
 Indice, cache delle miniature e `config.json` **non stanno dentro
-`C:\PicasaFotoViewer`**: vivono in una cartella fissa a parte, nel tuo
+`%USERPROFILE%\PicasaFotoViewer`**: vivono in una cartella fissa a parte, nel tuo
 profilo Windows (`%LOCALAPPDATA%\PicasaFotoViewer`), che l'aggiornamento
 non tocca mai — quindi non li perdi né devi copiarli a mano da nessuna
 parte.

@@ -5,7 +5,10 @@ REM Cartella FISSA: il programma vive SEMPRE qui, qualunque sia la
 REM cartella da cui lanci questo file (Desktop, Download, ovunque).
 REM Cosi' non si creano piu' copie sparse in posti diversi e non si
 REM perde mai il filo di "qual e' quella giusta".
-set "TARGET_DIR=C:\PicasaFotoViewer\"
+REM E' dentro il profilo utente (non in C:\ direttamente) apposta:
+REM ogni account Windows normale ha sempre il permesso di scrivere qui,
+REM senza bisogno di "Esegui come amministratore".
+set "TARGET_DIR=%USERPROFILE%\PicasaFotoViewer\"
 set "ZIP_URL=https://github.com/mariettodavi/mariettodavi/archive/refs/heads/claude/nuovo-progetto-foto-picasa-4d56p7.zip"
 set "WORK_DIR=%TEMP%\picasa_update_%RANDOM%"
 set "ZIP_FILE=%WORK_DIR%\update.zip"
@@ -23,6 +26,18 @@ echo [1/6] Chiudo l'app se e' in esecuzione...
 taskkill /IM PicasaFotoViewer.exe /F >nul 2>&1
 
 mkdir "%TARGET_DIR%" 2>nul
+if not exist "%TARGET_DIR%" (
+    echo.
+    echo ============================================
+    echo   ERRORE: non riesco a creare la cartella
+    echo   %TARGET_DIR%
+    echo ============================================
+    echo Prova a fare click destro su questo file e scegliere
+    echo "Esegui come amministratore", poi riprova.
+    pause
+    exit /b 1
+)
+
 mkdir "%WORK_DIR%" 2>nul
 
 echo [2/6] Scarico l'ultima versione da GitHub...
@@ -82,9 +97,40 @@ xcopy "%SOURCE_DIR%\*" "%TARGET_DIR%" /E /Y /I "/EXCLUDE:%WORK_DIR%\esclusi.txt"
 
 rmdir /s /q "%WORK_DIR%" 2>nul
 
+if not exist "%TARGET_DIR%app.py" (
+    echo.
+    echo ============================================
+    echo   ERRORE: la copia dei file non e' riuscita
+    echo ============================================
+    echo Non trovo app.py dentro %TARGET_DIR%
+    echo Nessuna icona verra' creata/modificata sul Desktop.
+    pause
+    exit /b 1
+)
+
 echo [5/6] Ricompilo l'eseguibile (puo' richiedere qualche minuto)...
 echo.
 call "%TARGET_DIR%build_exe.bat"
+
+if not exist "%TARGET_DIR%dist\PicasaFotoViewer.exe" (
+    echo.
+    echo ============================================
+    echo   ERRORE: la compilazione non e' riuscita
+    echo ============================================
+    echo Non trovo PicasaFotoViewer.exe dentro %TARGET_DIR%dist
+    echo.
+    echo Motivo piu' probabile: Python non e' installato su questo PC
+    echo ^(serve solo per compilare, non per usare il programma dopo^),
+    echo oppure non e' stato trovato durante la compilazione.
+    echo.
+    echo Scorri in alto in questa finestra: se vedi scritte tipo
+    echo "python non e' riconosciuto come comando interno o esterno",
+    echo e' proprio questo. Manda quel testo a chi ti segue.
+    echo.
+    echo Le icone sul Desktop NON vengono toccate, per non lasciarle rotte.
+    pause
+    exit /b 1
+)
 
 echo [6/6] Sistemo le icone sul Desktop...
 powershell -NoProfile -Command "$w = New-Object -ComObject WScript.Shell; $s1 = $w.CreateShortcut('%DESKTOP%\Picasa Foto Viewer.lnk'); $s1.TargetPath = '%TARGET_DIR%dist\PicasaFotoViewer.exe'; $s1.WorkingDirectory = '%TARGET_DIR%dist'; $s1.Save(); $s2 = $w.CreateShortcut('%DESKTOP%\Aggiorna Picasa Foto Viewer.lnk'); $s2.TargetPath = '%TARGET_DIR%aggiorna.bat'; $s2.WorkingDirectory = '%TARGET_DIR%'; $s2.Save()"
