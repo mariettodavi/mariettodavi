@@ -40,7 +40,30 @@ if not exist "%SOURCE_DIR%" (
     exit /b 1
 )
 
-echo [4/5] Sostituisco i file del programma con quelli nuovi...
+echo [4/5] Controllo se ci sono dati da versioni vecchie da salvare prima di pulire...
+set "OLD_DIST=%TARGET_DIR%dist"
+set "NEW_DATA_DIR=%LOCALAPPDATA%\PicasaFotoViewer"
+if exist "%OLD_DIST%\config.json" if not exist "%NEW_DATA_DIR%\config.json" (
+    mkdir "%NEW_DATA_DIR%" 2>nul
+    move "%OLD_DIST%\config.json" "%NEW_DATA_DIR%\config.json" >nul
+    echo   - trovato e salvato config.json da una versione precedente
+)
+if exist "%OLD_DIST%\index.db" if not exist "%NEW_DATA_DIR%\index.db" (
+    mkdir "%NEW_DATA_DIR%" 2>nul
+    move "%OLD_DIST%\index.db" "%NEW_DATA_DIR%\index.db" >nul
+    echo   - trovato e salvato index.db da una versione precedente
+)
+if exist "%OLD_DIST%\thumb_cache" if not exist "%NEW_DATA_DIR%\thumb_cache" (
+    mkdir "%NEW_DATA_DIR%" 2>nul
+    move "%OLD_DIST%\thumb_cache" "%NEW_DATA_DIR%\thumb_cache" >nul
+    echo   - trovata e salvata la cache miniature da una versione precedente
+)
+if exist "%OLD_DIST%\perf.log" if not exist "%NEW_DATA_DIR%\perf.log" (
+    mkdir "%NEW_DATA_DIR%" 2>nul
+    move "%OLD_DIST%\perf.log" "%NEW_DATA_DIR%\perf.log" >nul
+)
+
+echo Sostituisco i file del programma con quelli nuovi...
 if exist "%TARGET_DIR%build" rmdir /s /q "%TARGET_DIR%build"
 if exist "%TARGET_DIR%dist" rmdir /s /q "%TARGET_DIR%dist"
 del /q "%TARGET_DIR%*.spec" >nul 2>&1
