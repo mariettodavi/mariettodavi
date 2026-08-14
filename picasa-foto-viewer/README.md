@@ -55,17 +55,31 @@ cancellare in qualsiasi momento, si ricrea da solo.
 In alternativa, se preferisci non creare l'eseguibile, puoi continuare a
 usare `run.bat` (richiede Python installato, vedi sotto).
 
-## Come aggiornare a una versione nuova
+## Come aggiornare a una versione nuova (procedura guidata)
 
-Semplice, senza passaggi da ricordare: chiudi l'app dall'icona nella
-barra (vedi sotto), scarica di nuovo lo zip del progetto, **sostituisci
-tutta la cartella** `picasa-foto-viewer` con quella nuova, cancella
-`build`/`dist`/`*.spec` se presenti, ricompila con `build_exe.bat`.
+Doppio click su **`aggiorna.bat`**, dentro la cartella del progetto.
+Fa tutto da solo, senza dover scaricare zip o copiare file a mano:
 
-Indice, cache delle miniature e `config.json` **non stanno più dentro
-la cartella del progetto**: vivono in una cartella fissa del tuo profilo
-Windows (`%LOCALAPPDATA%\PicasaFotoViewer`) che non tocchi mai quando
-aggiorni, quindi non li perdi né devi copiarli a mano da nessuna parte.
+1. Chiude l'app se è aperta
+2. Scarica l'ultima versione da GitHub
+3. Sostituisce i file del programma con quelli nuovi
+4. Ricompila `PicasaFotoViewer.exe`
+
+Alla fine ti dice dove trovare il programma aggiornato. Ti serve solo
+premere Invio un paio di volte quando richiesto, non c'è altro da fare.
+Serve una connessione internet e Python già installato (lo stesso che
+usi già per `build_exe.bat`).
+
+Se preferisci farlo a mano: chiudi l'app dall'icona nella barra, scarica
+di nuovo lo zip del progetto, sostituisci tutta la cartella
+`picasa-foto-viewer` con quella nuova, cancella `build`/`dist`/`*.spec`
+se presenti, ricompila con `build_exe.bat`.
+
+In entrambi i casi, indice, cache delle miniature e `config.json`
+**non stanno più dentro la cartella del progetto**: vivono in una
+cartella fissa del tuo profilo Windows
+(`%LOCALAPPDATA%\PicasaFotoViewer`) che non tocchi mai quando aggiorni,
+quindi non li perdi né devi copiarli a mano da nessuna parte.
 
 **Nota una tantum**: se stai aggiornando da una versione precedente alla
 2.17, la primissima volta che apri la nuova build l'app sposta da sola
