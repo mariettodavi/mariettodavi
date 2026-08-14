@@ -46,7 +46,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.16"
+APP_VERSION = "2.17"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -56,23 +56,59 @@ INVALID_FOLDER_CHARS = r'\/:*?"<>|'
 
 
 def app_dir():
-    """Cartella dove tenere i dati persistenti (cache, indice).
+    """Cartella dove tenere i dati persistenti (cache, indice, config).
 
-    Quando l'app e' impacchettata come .exe con PyInstaller, i file
-    accanto al modulo Python sono estratti in una cartella temporanea che
-    sparisce ad ogni chiusura: i dati persistenti vanno quindi tenuti
-    accanto all'eseguibile vero, non a quella cartella temporanea.
+    NON e' la cartella del programma: quella cambia ad ogni aggiornamento
+    (si scarica una cartella nuova, si ricompila l'exe in una nuova
+    "dist"), quindi tenerci dentro i dati persistenti li fa perdere ad
+    ogni aggiornamento. Si usa invece una cartella fissa nel profilo
+    utente di Windows, che resta la stessa a prescindere da dove si trova
+    il programma in quel momento.
     """
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
+    else:
+        base = str(Path.home())
+    data_dir = Path(base) / "PicasaFotoViewer"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+
+
+def legacy_app_dir():
+    """Dove venivano tenuti i dati persistenti prima di questa versione
+    (accanto al programma): serve solo per spostarli una volta sola."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent
 
 
+def migrate_legacy_data():
+    """Se ci sono ancora dati nella vecchia posizione (accanto al
+    programma, da prima di questa versione), li sposta nella nuova
+    cartella fissa, una volta sola: cosi' l'aggiornamento a questa
+    versione non fa perdere l'indice, la cache o la configurazione."""
+    old_dir = legacy_app_dir()
+    new_dir = app_dir()
+    if old_dir.resolve() == new_dir.resolve():
+        return
+    for name in ("config.json", "index.db", "thumb_cache", "perf.log"):
+        old_path = old_dir / name
+        new_path = new_dir / name
+        if old_path.exists() and not new_path.exists():
+            try:
+                shutil.move(str(old_path), str(new_path))
+            except OSError:
+                pass
+
+
+migrate_legacy_data()
+
 CACHE_ROOT = app_dir() / "thumb_cache"
 DB_PATH = app_dir() / "index.db"
 # Configurazione locale (indirizzo e API key di Immich): NON viene mai
-# pubblicata su GitHub, resta solo sul tuo PC accanto al programma. Vedi
-# config.example.json per il formato.
+# pubblicata su GitHub, resta solo sul tuo PC in una cartella fissa che
+# non cambia mai ad ogni aggiornamento. Vedi config.example.json per il
+# formato.
 CONFIG_PATH = app_dir() / "config.json"
 # Quanto tempo impiega a leggere/ridurre ogni foto NUOVA (non quelle gia'
 # in cache): utile per capire se la lentezza e' la rete verso il NAS o

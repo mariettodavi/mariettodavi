@@ -34,12 +34,12 @@ occuparsi solo delle foto nuove.
 
 Se apri una cartella e non è ancora stata precaricata (o qualcosa
 sembra fuori norma), l'app tiene un log con il tempo reale impiegato
-per ogni foto: apri il file **`perf.log`** (nella stessa cartella di
-`PicasaFotoViewer.exe`) con un editor di testo. Ogni riga mostra quanto
-ci ha messo e quanto pesa il file originale — mandami qualche riga se i
-tempi ti sembrano fuori norma, così capiamo se il collo di bottiglia è
-la rete verso il NAS o altro. Il file si può cancellare in qualsiasi
-momento, si ricrea da solo.
+per ogni foto: apri il file **`perf.log`** dentro
+`%LOCALAPPDATA%\PicasaFotoViewer` con un editor di testo. Ogni riga
+mostra quanto ci ha messo e quanto pesa il file originale — mandami
+qualche riga se i tempi ti sembrano fuori norma, così capiamo se il
+collo di bottiglia è la rete verso il NAS o altro. Il file si può
+cancellare in qualsiasi momento, si ricrea da solo.
 
 ## Come si usa (consigliato: un unico .exe, senza Python)
 
@@ -54,6 +54,24 @@ momento, si ricrea da solo.
 
 In alternativa, se preferisci non creare l'eseguibile, puoi continuare a
 usare `run.bat` (richiede Python installato, vedi sotto).
+
+## Come aggiornare a una versione nuova
+
+Semplice, senza passaggi da ricordare: chiudi l'app dall'icona nella
+barra (vedi sotto), scarica di nuovo lo zip del progetto, **sostituisci
+tutta la cartella** `picasa-foto-viewer` con quella nuova, cancella
+`build`/`dist`/`*.spec` se presenti, ricompila con `build_exe.bat`.
+
+Indice, cache delle miniature e `config.json` **non stanno più dentro
+la cartella del progetto**: vivono in una cartella fissa del tuo profilo
+Windows (`%LOCALAPPDATA%\PicasaFotoViewer`) che non tocchi mai quando
+aggiorni, quindi non li perdi né devi copiarli a mano da nessuna parte.
+
+**Nota una tantum**: se stai aggiornando da una versione precedente alla
+2.17, la primissima volta che apri la nuova build l'app sposta da sola
+(una volta sola) `config.json`, `index.db` e `thumb_cache` dalla vecchia
+posizione (dentro `dist`) a quella nuova fissa — non serve fare nulla di
+manuale, nemmeno stavolta.
 
 ## Come chiudere l'app
 
@@ -85,8 +103,8 @@ barra (vedi sopra) e riprova.
 
 Invece di interrogare il NAS via rete ogni volta che apri una cartella
 (lento se il NAS è lento a rispondere), l'app tiene un piccolo indice
-locale (`index.db`, un file accanto al programma) con l'elenco di
-cartelle e foto. Aprire le cartelle è quindi istantaneo.
+locale (`index.db`, dentro `%LOCALAPPDATA%\PicasaFotoViewer`) con
+l'elenco di cartelle e foto. Aprire le cartelle è quindi istantaneo.
 
 - La **prima volta** che avvii l'app, o dopo aver cancellato `index.db`,
   viene creato leggendo tutto l'albero del NAS (può richiedere qualche
@@ -144,28 +162,28 @@ sul NAS: badge comunque visibile).
 
 Per attivarlo:
 
-1. Copia `config.example.json` e rinomina la copia in **`config.json`**.
-   **Attenzione a dove la metti**, perché dipende da come usi l'app:
-   - Se usi l'eseguibile (`PicasaFotoViewer.exe`): `config.json` va nella
-     cartella **`dist`**, accanto a `PicasaFotoViewer.exe` — **non** nella
-     cartella principale del progetto dove sta `app.py`. Sono due
-     cartelle diverse e l'app cerca `config.json` solo accanto a se
-     stessa.
-   - Se usi `run.bat` (senza eseguibile): `config.json` va nella stessa
-     cartella di `app.py`.
-2. Apri `config.json` e inserisci:
+1. Avvia l'app almeno una volta (crea da sola la cartella dove tiene i
+   dati, vedi sotto), poi chiudila.
+2. Apri Esplora File, scrivi nella barra dell'indirizzo
+   `%LOCALAPPDATA%\PicasaFotoViewer` e premi Invio — ti porta dritto
+   nella cartella giusta.
+3. Copia lì dentro `config.example.json` (lo trovi nella cartella del
+   progetto) e rinomina la copia in **`config.json`**.
+4. Apri `config.json` e inserisci:
    - `immich_url`: l'indirizzo del tuo server Immich (es.
      `http://192.168.178.85:22283`).
    - `immich_api_key`: una API key generata da Immich (client web →
      avatar in alto a destra → Account Settings → API Keys → New API
      Key).
-3. Riavvia l'app (o premi **↻ Aggiorna**) e i badge compaiono da soli.
+5. Riavvia l'app (o premi **↻ Aggiorna**) e i badge compaiono da soli.
 
 `config.json` **non viene mai pubblicato su GitHub** (è escluso apposta,
-vedi `.gitignore`): la tua API key resta solo sul tuo PC. Il collegamento
-a Immich gira sempre in background: se non è configurato, è lento o non
-è raggiungibile, l'app continua a funzionare normalmente e non aspetta
-mai — semplicemente non compaiono badge.
+vedi `.gitignore`) e non sta nella cartella del progetto: la tua API key
+resta solo in quella cartella fissa sul tuo PC, al sicuro anche quando
+aggiorni l'app. Il collegamento a Immich gira sempre in background: se
+non è configurato, è lento o non è raggiungibile, l'app continua a
+funzionare normalmente e non aspetta mai — semplicemente non compaiono
+badge.
 
 Sotto "Mostra cartelle nascoste" compare una riga di stato che dice
 esattamente cosa succede: **"Immich: N album trovati"** (verde) se va
@@ -180,10 +198,10 @@ creato un nuovo album su Immich per vederlo comparire.
 
 La prima volta che apri una cartella, l'app genera le miniature delle foto
 al suo interno e le salva in locale sul tuo PC, nella cartella
-`thumb_cache/` accanto al programma (mai sul NAS: il NAS non viene mai
-modificato). Le volte successive le miniature sono già pronte e si aprono
-istantaneamente. Se una foto sul NAS viene modificata o sostituita, l'app
-se ne accorge da sola e rigenera la sua miniatura.
+`%LOCALAPPDATA%\PicasaFotoViewer\thumb_cache\` (mai sul NAS: il NAS non
+viene mai modificato). Le volte successive le miniature sono già pronte e
+si aprono istantaneamente. Se una foto sul NAS viene modificata o
+sostituita, l'app se ne accorge da sola e rigenera la sua miniatura.
 
 ## Requisiti
 
