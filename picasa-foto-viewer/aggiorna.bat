@@ -90,17 +90,19 @@ if exist "%TARGET_DIR%build" rmdir /s /q "%TARGET_DIR%build"
 if exist "%TARGET_DIR%dist" rmdir /s /q "%TARGET_DIR%dist"
 del /q "%TARGET_DIR%*.spec" >nul 2>&1
 
-REM Questo file (aggiorna.bat) viene escluso apposta dalla sostituzione:
-REM non tocca mai se stesso mentre e' in esecuzione.
-echo aggiorna.bat> "%WORK_DIR%\esclusi.txt"
-REM TARGET_DIR finisce sempre con backslash (serve per tutti gli altri
-REM usi tipo %TARGET_DIR%dist). Passarlo cosi' com'e', tra virgolette,
-REM come destinazione di xcopy manda in confusione xcopy (backslash
-REM subito prima della virgoletta di chiusura). Qui sotto si toglie
-REM quell'ultimo carattere solo per questo comando, cosi' non c'e' nessun
-REM backslash appena prima della virgoletta e xcopy non si confonde piu'.
-set "TARGET_DIR_XCOPY=%TARGET_DIR:~0,-1%"
-xcopy "%SOURCE_DIR%\*" "%TARGET_DIR_XCOPY%" /E /Y /I "/EXCLUDE:%WORK_DIR%\esclusi.txt" >nul
+REM robocopy invece di xcopy: xcopy continuava a rompersi con
+REM "Numero di parametri non valido" con questi percorsi, senza un modo
+REM affidabile di verificarne il motivo esatto. robocopy e' incluso in
+REM tutte le versioni moderne di Windows, gestisce meglio le virgolette,
+REM e puo' escludere aggiorna.bat per nome (/XF) senza bisogno di un file
+REM di elenco esclusioni separato: cosi' non tocca mai se stesso mentre
+REM e' in esecuzione.
+REM Nota: il codice di uscita di robocopy NON segue la convenzione
+REM normale (0 = successo): 0-7 sono tutti forme di successo. Per questo
+REM il controllo vero non e' sul codice di uscita, ma subito dopo,
+REM verificando che app.py sia stato copiato per davvero.
+set "TARGET_DIR_DEST=%TARGET_DIR:~0,-1%"
+robocopy "%SOURCE_DIR%" "%TARGET_DIR_DEST%" /E /XF aggiorna.bat >nul
 
 rmdir /s /q "%WORK_DIR%" 2>nul
 
