@@ -93,12 +93,14 @@ del /q "%TARGET_DIR%*.spec" >nul 2>&1
 REM Questo file (aggiorna.bat) viene escluso apposta dalla sostituzione:
 REM non tocca mai se stesso mentre e' in esecuzione.
 echo aggiorna.bat> "%WORK_DIR%\esclusi.txt"
-REM Il backslash in piu' prima delle virgolette qui sotto e' voluto:
-REM senza, xcopy vede un backslash singolo appena prima della virgoletta
-REM di chiusura e la interpreta come carattere letterale invece che come
-REM chiusura della stringa, mandando in confusione tutti i parametri
-REM successivi (da qui l'errore "Numero di parametri non valido").
-xcopy "%SOURCE_DIR%\*" "%TARGET_DIR%\" /E /Y /I "/EXCLUDE:%WORK_DIR%\esclusi.txt" >nul
+REM TARGET_DIR finisce sempre con backslash (serve per tutti gli altri
+REM usi tipo %TARGET_DIR%dist). Passarlo cosi' com'e', tra virgolette,
+REM come destinazione di xcopy manda in confusione xcopy (backslash
+REM subito prima della virgoletta di chiusura). Qui sotto si toglie
+REM quell'ultimo carattere solo per questo comando, cosi' non c'e' nessun
+REM backslash appena prima della virgoletta e xcopy non si confonde piu'.
+set "TARGET_DIR_XCOPY=%TARGET_DIR:~0,-1%"
+xcopy "%SOURCE_DIR%\*" "%TARGET_DIR_XCOPY%" /E /Y /I "/EXCLUDE:%WORK_DIR%\esclusi.txt" >nul
 
 rmdir /s /q "%WORK_DIR%" 2>nul
 
