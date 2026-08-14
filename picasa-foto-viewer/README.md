@@ -68,7 +68,15 @@ Fa tutto da solo, senza dover scaricare zip o copiare file a mano:
 Alla fine ti dice dove trovare il programma aggiornato. Ti serve solo
 premere Invio un paio di volte quando richiesto, non c'è altro da fare.
 Serve una connessione internet e Python già installato (lo stesso che
-usi già per `build_exe.bat`).
+usi già per `build_exe.bat`). Ogni passaggio termina sempre con un
+messaggio e "premi un tasto per continuare", quindi la finestra non si
+chiude mai da sola senza farti leggere cosa è successo.
+
+`aggiorna.bat` aggiorna tutti i file del programma **tranne se stesso**
+(apposta, per non rischiare di modificarsi mentre è in esecuzione). Se
+in futuro esce una versione corretta di `aggiorna.bat`, va ripresa a
+mano una volta sola con lo stesso metodo di oggi (salvando di nuovo solo
+quel file); il resto dell'aggiornamento resta automatico.
 
 Se preferisci farlo a mano: chiudi l'app dall'icona nella barra, scarica
 di nuovo lo zip del progetto, sostituisci tutta la cartella

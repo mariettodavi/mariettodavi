@@ -1,20 +1,7 @@
 @echo off
-setlocal enabledelayedexpansion
 title Aggiornamento Picasa Foto Viewer
 
-if "%~1"=="" (
-    REM Prima esecuzione: si copia in una cartella temporanea e si
-    REM rilancia da li'. Serve per poter sostituire in sicurezza anche
-    REM questo stesso file dentro la cartella originale, senza che lo
-    REM script stia "segando il ramo su cui e' seduto".
-    set "ORIGINAL_DIR=%~dp0"
-    set "SELF_COPY=%TEMP%\aggiorna_picasa_%RANDOM%.bat"
-    copy /Y "%~f0" "!SELF_COPY!" >nul
-    call "!SELF_COPY!" "!ORIGINAL_DIR!"
-    exit /b
-)
-
-set "TARGET_DIR=%~1"
+set "TARGET_DIR=%~dp0"
 set "ZIP_URL=https://github.com/mariettodavi/mariettodavi/archive/refs/heads/claude/nuovo-progetto-foto-picasa-4d56p7.zip"
 set "WORK_DIR=%TEMP%\picasa_update_%RANDOM%"
 set "ZIP_FILE=%WORK_DIR%\update.zip"
@@ -34,6 +21,7 @@ powershell -NoProfile -Command "$ProgressPreference='SilentlyContinue'; try { In
 if not exist "%ZIP_FILE%" (
     echo.
     echo ERRORE: il download non e' riuscito. Controlla la connessione internet e riprova.
+    echo Se il problema persiste, aggiorna a mano seguendo le istruzioni nel README.
     pause
     exit /b 1
 )
@@ -47,7 +35,7 @@ for /d %%D in ("%WORK_DIR%\extracted\*") do set "SOURCE_DIR=%%D\picasa-foto-view
 if not exist "%SOURCE_DIR%" (
     echo.
     echo ERRORE: non trovo la cartella picasa-foto-viewer nello zip scaricato.
-    echo Puo' darsi che il progetto sia stato rinominato: aggiornalo a mano per questa volta.
+    echo Aggiorna a mano per questa volta seguendo le istruzioni nel README.
     pause
     exit /b 1
 )
@@ -56,7 +44,14 @@ echo [4/5] Sostituisco i file del programma con quelli nuovi...
 if exist "%TARGET_DIR%build" rmdir /s /q "%TARGET_DIR%build"
 if exist "%TARGET_DIR%dist" rmdir /s /q "%TARGET_DIR%dist"
 del /q "%TARGET_DIR%*.spec" >nul 2>&1
-xcopy "%SOURCE_DIR%\*" "%TARGET_DIR%" /E /Y /I >nul
+
+REM Questo file (aggiorna.bat) viene escluso apposta dalla sostituzione:
+REM non tocca mai se stesso mentre e' in esecuzione. Se in futuro esce
+REM una versione nuova di aggiorna.bat, va aggiornata a mano una volta
+REM (scaricando di nuovo solo questo file), poi torna ad aggiornarsi da
+REM solo per tutto il resto.
+echo aggiorna.bat> "%WORK_DIR%\esclusi.txt"
+xcopy "%SOURCE_DIR%\*" "%TARGET_DIR%" /E /Y /I "/EXCLUDE:%WORK_DIR%\esclusi.txt" >nul
 
 rmdir /s /q "%WORK_DIR%" 2>nul
 
