@@ -47,7 +47,7 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.21"
+APP_VERSION = "2.22"
 HOST = "127.0.0.1"
 PORT = 8765
 
@@ -57,13 +57,20 @@ VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".m4v", ".wmv", ".3gp"}
 MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 INVALID_FOLDER_CHARS = r'\/:*?"<>|'
 
+# Senza questo, ogni chiamata a subprocess.run() per ffmpeg apriva una sua
+# finestra di console visibile su Windows (l'app compilata non ne ha una
+# propria, quindi Windows gliene crea una nuova per il processo figlio) -
+# con tante miniature video da generare in parallelo, si vedeva una
+# valanga di finestre nere aprirsi una via l'altra.
+SUBPROCESS_FLAGS = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
+
 
 def check_ffmpeg_available():
     """Vero se 'ffmpeg' e' installato e nel PATH: serve solo per generare
     le anteprime dei video (un fotogramma), non per riprodurli - la
     riproduzione nel browser non ha bisogno di ffmpeg."""
     try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5, **SUBPROCESS_FLAGS)
         return True
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -497,6 +504,7 @@ def generate_video_thumbnail(abs_source, thumb_path):
                 ],
                 capture_output=True,
                 timeout=30,
+                **SUBPROCESS_FLAGS,
             )
         except (OSError, subprocess.TimeoutExpired):
             return False
