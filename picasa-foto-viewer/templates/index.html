@@ -26,6 +26,12 @@
       <div id="immich-status" class="hidden"></div>
       <div id="index-status" class="hidden"></div>
       <div id="precache-status" class="hidden"></div>
+      {% if not ffmpeg_available %}
+      <div id="ffmpeg-warning">
+        ffmpeg non trovato: le anteprime dei video non si vedranno
+        (i video restano comunque tra le foto e si possono aprire).
+      </div>
+      {% endif %}
       <div id="tree"></div>
     </aside>
     <main id="main">
@@ -43,6 +49,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
     </button>
     <img id="lb-img" src="" alt="">
+    <video id="lb-video" class="hidden" src="" controls></video>
     <button id="lb-next" class="lb-btn" title="Successiva">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
     </button>

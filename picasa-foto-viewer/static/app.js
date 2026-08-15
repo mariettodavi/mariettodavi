@@ -19,6 +19,8 @@ const ICON_TRASH =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>';
 const ICON_IMMICH_BADGE =
   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 9 10.5 15 8 12.5" /></svg>';
+const ICON_PLAY =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.45)" /><path d="M10 8.5v7l6-3.5-6-3.5Z" fill="white" /></svg>';
 
 const treeEl = document.getElementById("tree");
 const gridEl = document.getElementById("grid");
@@ -28,6 +30,7 @@ const refreshBtn = document.getElementById("refresh-btn");
 
 const lightboxEl = document.getElementById("lightbox");
 const lbImg = document.getElementById("lb-img");
+const lbVideo = document.getElementById("lb-video");
 const lbCaption = document.getElementById("lb-caption");
 
 document.getElementById("lb-close").addEventListener("click", closeLightbox);
@@ -333,6 +336,13 @@ function renderGrid(photos) {
     img.src = `/api/thumb?path=${encodeURIComponent(photo.path)}`;
     img.alt = photo.name;
     cell.appendChild(img);
+    if (photo.isVideo) {
+      cell.classList.add("thumb-video");
+      const playBadge = document.createElement("span");
+      playBadge.className = "play-badge";
+      playBadge.innerHTML = ICON_PLAY;
+      cell.appendChild(playBadge);
+    }
     cell.addEventListener("click", () => openLightbox(index));
     gridEl.appendChild(cell);
   });
@@ -349,6 +359,8 @@ function openLightbox(index) {
 function closeLightbox() {
   lightboxEl.classList.add("hidden");
   lbImg.src = "";
+  lbVideo.pause();
+  lbVideo.src = "";
 }
 
 function moveLightbox(delta) {
@@ -360,7 +372,23 @@ function moveLightbox(delta) {
 function showLightboxImage() {
   const photo = state.photos[state.lightboxIndex];
   if (!photo) return;
-  lbImg.src = `/api/full?path=${encodeURIComponent(photo.path)}`;
+  const url = `/api/full?path=${encodeURIComponent(photo.path)}`;
+  if (photo.isVideo) {
+    lbImg.classList.add("hidden");
+    lbImg.src = "";
+    lbVideo.classList.remove("hidden");
+    lbVideo.src = url;
+    lbVideo.play().catch(() => {
+      // L'autoplay puo' essere bloccato dal browser: non e' un errore,
+      // l'utente preme play a mano dai controlli del video.
+    });
+  } else {
+    lbVideo.classList.add("hidden");
+    lbVideo.pause();
+    lbVideo.src = "";
+    lbImg.classList.remove("hidden");
+    lbImg.src = url;
+  }
   lbCaption.textContent = `${photo.name} (${state.lightboxIndex + 1}/${state.photos.length})`;
 }
 

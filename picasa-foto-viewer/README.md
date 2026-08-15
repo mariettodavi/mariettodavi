@@ -263,10 +263,33 @@ Se cambia il nome del NAS o della cartella condivisa, modifica la riga
 NAS_ROOT = Path(r"\\FS6706T-EC49\Picasa - Foto")
 ```
 
+## Video
+
+Oltre alle immagini, la griglia mostra anche i video (`.mp4`, `.mov`,
+`.avi`, `.mkv`, `.m4v`, `.wmv`, `.3gp`) trovati nelle cartelle, con
+un'anteprima (un fotogramma preso dal video) e l'icona di play sopra.
+Cliccandoci sopra si aprono nel visualizzatore con i controlli di
+riproduzione normali del browser (play/pausa, avanti/indietro,
+schermo intero).
+
+Le anteprime dei video richiedono **ffmpeg** installato sul PC (serve
+solo per estrarre il fotogramma, non per riprodurre il video: quello lo
+fa il browser da solo). Se `ffmpeg` non è installato, i video restano
+comunque visibili e apribili, semplicemente senza anteprima nella
+griglia (la sidebar te lo segnala con un avviso).
+
+Per installare ffmpeg su Windows, il modo più semplice è aprire
+PowerShell e scrivere:
+
+```
+winget install ffmpeg
+```
+
+poi riavviare il programma (chiudilo dall'icona nella barra e riaprilo)
+perché lo rilevi.
+
 ## Limiti attuali
 
-- Mostra solo immagini (`.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`,
-  `.tiff`); eventuali video nelle cartelle vengono ignorati.
 - Le foto in formato HEIC (tipico export iPhone) potrebbero non generare
   una miniatura se Pillow non ha il supporto HEIC installato: se ti serve,
   fammelo sapere e aggiungo il supporto.

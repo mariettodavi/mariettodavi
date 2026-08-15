@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import sqlite3
+import subprocess
 import sys
 import threading
 import time
@@ -46,13 +47,29 @@ APP_ID = "picasa-foto-viewer"
 # Aumenta questo numero ad ogni modifica: si vede in cima alla barra
 # laterale dell'app, cosi' e' facile controllare se una build .exe e'
 # davvero quella aggiornata invece di doverlo indovinare.
-APP_VERSION = "2.20"
+APP_VERSION = "2.21"
 HOST = "127.0.0.1"
 PORT = 8765
 
 THUMB_SIZE = (320, 320)
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff"}
+VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".m4v", ".wmv", ".3gp"}
+MEDIA_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 INVALID_FOLDER_CHARS = r'\/:*?"<>|'
+
+
+def check_ffmpeg_available():
+    """Vero se 'ffmpeg' e' installato e nel PATH: serve solo per generare
+    le anteprime dei video (un fotogramma), non per riprodurli - la
+    riproduzione nel browser non ha bisogno di ffmpeg."""
+    try:
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+        return True
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+FFMPEG_AVAILABLE = check_ffmpeg_available()
 
 
 def app_dir():
@@ -279,7 +296,7 @@ def rebuild_index():
                         (child_rel, rel_dir, name),
                     )
                 for name in filenames:
-                    if Path(name).suffix.lower() in IMAGE_EXTENSIONS:
+                    if Path(name).suffix.lower() in MEDIA_EXTENSIONS:
                         child_rel = f"{rel_dir}/{name}" if rel_dir else name
                         conn.execute(
                             "INSERT INTO photos(path, folder, name) VALUES (?, ?, ?)",
@@ -339,7 +356,14 @@ def db_list_photos(rel):
         (rel,),
     ).fetchall()
     conn.close()
-    return [{"name": row["name"], "path": row["path"]} for row in rows]
+    return [
+        {
+            "name": row["name"],
+            "path": row["path"],
+            "isVideo": Path(row["name"]).suffix.lower() in VIDEO_EXTENSIONS,
+        }
+        for row in rows
+    ]
 
 
 def db_rename_subtree(old_rel, new_rel):
@@ -438,16 +462,7 @@ def log_perf(line):
         pass
 
 
-def ensure_thumbnail(abs_source):
-    thumb_path = thumbnail_path_for(abs_source)
-    try:
-        source_mtime = abs_source.stat().st_mtime
-    except OSError:
-        return None
-    if thumb_path.exists() and thumb_path.stat().st_mtime >= source_mtime:
-        return thumb_path
-    thumb_path.parent.mkdir(parents=True, exist_ok=True)
-    start = time.time()
+def generate_image_thumbnail(abs_source, thumb_path):
     try:
         with Image.open(abs_source) as img:
             # draft: per i JPEG, fa decodificare al volo una versione gia'
@@ -460,6 +475,51 @@ def ensure_thumbnail(abs_source):
             img.thumbnail(THUMB_SIZE)
             img.save(thumb_path, "JPEG", quality=85)
     except (UnidentifiedImageError, OSError):
+        return False
+    return True
+
+
+def generate_video_thumbnail(abs_source, thumb_path):
+    """Estrae un fotogramma dal video con ffmpeg e lo salva come
+    miniatura. Prova al secondo 1 (evita spesso un primo fotogramma nero
+    o sfocato); se il video e' piu' corto, riprova dal primissimo
+    fotogramma invece di rinunciare subito."""
+    if not FFMPEG_AVAILABLE:
+        return False
+    scale = f"scale={THUMB_SIZE[0]}:{THUMB_SIZE[1]}:force_original_aspect_ratio=decrease"
+    for seek_args in (["-ss", "1"], []):
+        try:
+            result = subprocess.run(
+                [
+                    "ffmpeg", "-y", *seek_args, "-i", str(abs_source),
+                    "-frames:v", "1", "-update", "1", "-vf", scale,
+                    str(thumb_path),
+                ],
+                capture_output=True,
+                timeout=30,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        if result.returncode == 0 and thumb_path.exists():
+            return True
+    return False
+
+
+def ensure_thumbnail(abs_source):
+    thumb_path = thumbnail_path_for(abs_source)
+    try:
+        source_mtime = abs_source.stat().st_mtime
+    except OSError:
+        return None
+    if thumb_path.exists() and thumb_path.stat().st_mtime >= source_mtime:
+        return thumb_path
+    thumb_path.parent.mkdir(parents=True, exist_ok=True)
+    start = time.time()
+    if abs_source.suffix.lower() in VIDEO_EXTENSIONS:
+        ok = generate_video_thumbnail(abs_source, thumb_path)
+    else:
+        ok = generate_image_thumbnail(abs_source, thumb_path)
+    if not ok:
         return None
     elapsed = time.time() - start
     try:
@@ -543,7 +603,12 @@ def add_cache_headers(response):
 
 @app.route("/")
 def index():
-    return render_template("index.html", root_label=NAS_ROOT.name, app_version=APP_VERSION)
+    return render_template(
+        "index.html",
+        root_label=NAS_ROOT.name,
+        app_version=APP_VERSION,
+        ffmpeg_available=FFMPEG_AVAILABLE,
+    )
 
 
 @app.route("/api/ping")
