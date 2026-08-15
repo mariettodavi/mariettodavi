@@ -14,8 +14,13 @@ Google Foto (file `.zip` nella cartella Download) dentro il NAS, in:
    dentro una sottocartella (anche più livelli, es. `antaeus` → `vacanze`).
    Usa "Su di un livello" per tornare indietro e "Nuova cartella qui..." per
    crearne una nuova esattamente nella posizione in cui ti trovi.
-3. Premi "Estrai ZIP QUI": il contenuto dello zip viene copiato nella
-   cartella in cui ti trovi in quel momento (mostrata sopra l'elenco).
+3. Premi "Estrai ZIP QUI": viene creata una **sottocartella con lo stesso
+   nome del file zip** dentro la cartella in cui ti trovi (mostrata sopra
+   l'elenco), e il contenuto dello zip va lì dentro — mai direttamente
+   nella cartella scelta, altrimenti se lo zip non ha gia' una sua
+   cartella dentro le foto si mescolerebbero con quello che c'era gia'.
+   Se una cartella con quel nome esiste gia', ne viene creata una con un
+   numero in più (es. "Gite Roma (2)").
 4. Se l'estrazione va a buon fine, il file `.zip` originale viene cancellato
    dalla cartella Download.
 

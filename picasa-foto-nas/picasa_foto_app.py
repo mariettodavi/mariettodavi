@@ -187,8 +187,11 @@ class PicasaFotoApp:
     def start_extract(self):
         target_dir = self.current_dir()
         target_label = self.display_path()
+        zip_name = os.path.splitext(os.path.basename(self.zip_path.get()))[0]
         if not messagebox.askyesno(
-            "Conferma estrazione", f'Estrarre lo zip dentro:\n"{target_label}" ?'
+            "Conferma estrazione",
+            f'Verrà creata la cartella "{zip_name}" dentro:\n"{target_label}"\n'
+            "e le foto dello zip andranno lì dentro. Procedere?",
         ):
             return
         self.extract_btn.config(state="disabled")
@@ -207,19 +210,40 @@ class PicasaFotoApp:
             self.report_error(f"La cartella di destinazione non esiste: {target_dir}")
             return
 
+        # Lo zip va sempre estratto dentro una sua sottocartella (con lo
+        # stesso nome dello zip), non direttamente nella cartella scelta:
+        # altrimenti se lo zip contiene le foto senza una sua cartella
+        # dentro, finivano mescolate con quello che c'era gia' nella
+        # cartella di destinazione, perdendo il fatto che erano un gruppo
+        # a se'. Se il nome esiste gia', si aggiunge un numero.
+        zip_name = os.path.splitext(os.path.basename(zip_path))[0]
+        extract_dir = os.path.join(target_dir, zip_name)
+        counter = 2
+        while os.path.exists(extract_dir):
+            extract_dir = os.path.join(target_dir, f"{zip_name} ({counter})")
+            counter += 1
+
+        try:
+            os.makedirs(extract_dir)
+        except OSError as exc:
+            self.report_error(f"Impossibile creare la cartella \"{os.path.basename(extract_dir)}\": {exc}")
+            return
+
         try:
             with zipfile.ZipFile(zip_path) as zf:
                 bad_file = zf.testzip()
                 if bad_file:
                     self.report_error(f"File ZIP corrotto: {bad_file}")
                     return
-                zf.extractall(target_dir)
+                zf.extractall(extract_dir)
         except zipfile.BadZipFile:
             self.report_error("Il file selezionato non è un archivio ZIP valido.")
             return
         except OSError as exc:
             self.report_error(f"Errore durante l'estrazione: {exc}")
             return
+
+        target_label = f"{target_label} / {os.path.basename(extract_dir)}"
 
         try:
             os.remove(zip_path)
